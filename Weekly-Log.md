@@ -4,10 +4,15 @@ This is a weekly log of what work I have done on tasks for this resarch project.
 
 ## Current & Ongoing Tasks
 
-- [ ] Read Gaussian Processes paper (<https://arxiv.org/pdf/2205.15449>)
-- [ ] Read additional Gaussian Process/Bayesian Optimization notes
-- [ ] Brush up on linear algebra
-- [ ] Set up Python locally
+- Theory-Related
+    * [ ] Read Gaussian Processes paper (<https://arxiv.org/pdf/2205.15449>)
+    * [ ] Read additional Gaussian Process/Bayesian Optimization notes
+    * [ ] Brush up on linear algebra
+- Coding-Related
+    * [ ] Set up Python locally
+    * [ ] Relearn Python syntax and code (I am too used to working with R)
+    * [ ] Relearn pandas, numpy, scipy library syntax
+    * [ ] Learn Pytorch
 
 ---
 
