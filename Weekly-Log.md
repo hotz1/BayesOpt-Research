@@ -27,6 +27,7 @@ This is a weekly log of what work I have done on tasks for this resarch project.
     * [x] Reinstall Anaconda and Jupyter
     * [x] Download common libraries (`pandas`, `numpy`, `scipy`, etc.)
 - [x] Read additional Gaussian Process/Bayesian Optimization notes
-- [x] Make changes to the [Iterative Gaussian Processes notebook](./Code/Demo-Code/iterative_gp_conditioning_demo_original.ipynb>)
+- [x] Make changes to the [Iterative Gaussian Processes notebook](./Code/Demo-Code/iterative_gp_conditioning_demo_original.ipynb)
+- [x] Make changes to the Iterative Gaussian Processes notebook (<./Code/Demo-Code/iterative_gp_conditioning_demo_original.ipynb>)
     * [x] Make the `update_K_chol` function more efficient
     * [x] Change the iterative selection in the loop in the final cell
