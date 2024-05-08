@@ -32,11 +32,11 @@ This is a weekly log of what work I have done on tasks for this resarch project.
 ## Diagram (For Fun)
 
 ```mermaid
-flowchart LR
-    ps2 --> gen1(Relearn general Python syntax)
-    ps2 --> gen2(Relearn library syntax)
-    ps3 & gen2 --> gen3(Learn Pytorch)
-    subgraph pysetup [Python Setup]
-    ps1(Install and update Python) --> ps2(Reinstall Anaconda and Jupyter)
-    ps1 --> ps3(Download libraries)
+flowchart LR;
+    ps2 --> gen1(Relearn general Python syntax);
+    ps2 --> gen2(Relearn library syntax);
+    ps3 & gen2 --> gen3(Learn Pytorch);
+    subgraph pysetup [Python Setup];
+    ps1(Install and update Python) --> ps2(Reinstall Anaconda and Jupyter);
+    ps1 --> ps3(Download libraries);
 ```
