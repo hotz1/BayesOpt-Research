@@ -1,2 +1,9 @@
 # Log files
 *.log
+
+# Extra files from LaTeXmk
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz
