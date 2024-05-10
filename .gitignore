@@ -1,9 +1,12 @@
 # Log files
 *.log
 
-# Extra files from LaTeXmk
+# Extra files from latexmk 
 *.aux
 *.fdb_latexmk
 *.fls
 *.out
 *.synctex.gz
+
+# ipynb checkpoints
+*/.ipynb_checkpoints/*
