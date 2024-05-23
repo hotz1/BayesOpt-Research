@@ -4,19 +4,28 @@ This is a weekly log of what work I have done on tasks for this research project
 
 ## Current & Ongoing Tasks
 
-- Code-Related
+- Coding: 
     * [ ] Update the iterative GPs notebook to work properly with selection matrices 
     * [ ] Rewrite the code to make selection matrices work as described in the paper
-    * [ ] Create more helper functions to allow code to be extended to higher-dimensional input spaces
-- Theory-Related
-    * [ ] Read Bayesian Optimization paper (<https://arxiv.org/pdf/2205.15449>)
-    * [ ] Create and update theory/project notes document
+    * [ ] ~~Create more helper functions to allow code to be extended to higher-dimensional input spaces~~
+    * [ ] Finish working on sequential/iterative GP notebook
+    * [ ] Create code for optimizing selection matrix in "one shot" (instead of sequentially)
+- Theoretical:
+    * [ ] Update [theory/notes document](./Notes/Research-General-Notes.pdf)
+- Reading List:
+    * [ ] *Computation-Aware Gaussian Processes* 
+    * [ ] *Approximation-Aware Bayesian Optimization* 
+    * [ ] Variational Inference paper
+    * [ ] *Posterior and Computational Uncertainty in Gaussian Processes* (<https://arxiv.org/pdf/2205.15449>)
+- Other:
 
 ---
 
 ## Completed Tasks (Organized by Week)
 
 ### May 19 - May 25
+
+- [x] Go over the [pytorch Gradient Descent demo](/Code/Gradient-Descent-Demo/grad_descent_example.ipynb)
 
 ### May 12 - May 18
 
