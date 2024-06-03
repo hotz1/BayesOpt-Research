@@ -1,4 +1,4 @@
-\documentclass[12pt]{article}
+\documentclass[11pt]{article}
 \input{macros/math-alphabets.tex}
 \input{macros/math-macros.tex}
 \input{macros/typesetting-macros.tex}
@@ -30,17 +30,37 @@
 
 \begin{document}
 
-\begin{multicols*}{2}
+% \begin{multicols*}{2}
  
 \section{Linear Algebra}
-\begin{itemize}[label = $\triangleright$, itemsep = -3pt, topsep = -10pt, leftmargin = *]
+\begin{itemize}[label = $\blacktriangleright$, itemsep = -3pt, topsep = -10pt, leftmargin = *]
   \item 
   \item 
+\end{itemize}
+
+\section{Normal Distributions}
+\begin{itemize}[label = $\blacktriangleright$, itemsep = -3pt, topsep = -10pt, leftmargin = *]
+  \item 
+  \underline{Univariate Normal}: $X \sim \calN(\mu, \sigma^2)$ has density $f_{X}(x; \mu, \sigma^2) = (2\pi\sigma^{2})^{-1/2}\exp(-\frac{(x-\mu)^2}{2\sigma^2})$
+  \begin{itemize}[label = $\triangleright$, itemsep = -2pt, topsep = -10pt]
+    \item $X \sim \calN(\mu, \sigma^2) \implies \expec{X} = \mu$ 
+    \item $X \sim \calN(\mu, \sigma^2) \implies \var{X} = \sigma^2$ 
+    \item
+    Any linear combination of \textbf{independent} Normal random variables is also Normal. Example:\\ $X_{1} \sim \calN(\mu_{1}, \sigma^{2}_{1}), X_{2} \sim \calN(\mu_{2}, \sigma^{2}_{2}) \implies aX_{1} + bX_{2} \sim \calN(a\mu_{1} + b\mu_{2}, a^{2}\sigma_{1}^{2} + b^2\sigma_{2}^{2})$
+  \end{itemize}
+  \item 
+  \underline{Multivariate Normal}: $\bfX \sim \calN(\bfmu, \bfSigma)$, where $\bfmu \in \bbR^{D}$ and $\bfSigma \in \bbR^{D \times D}$ is positive definite has density $f_{X}(\bfx; \bfmu, \bfSigma) = (2\pi)^{-D/2}\det(\bfSigma)^{-1/2}\exp\big(-\frac{1}{2}(\bfx - \bfmu)^{\top}\bfSigma^{-1}(\bfx - \bfmu)\big)$
+  \begin{itemize}[label = $\triangleright$, itemsep = -2pt, topsep = -10pt]
+    \item $\bfX \sim \calN(\bfmu, \bfSigma) \implies \expec{\bfX} = \bfmu$ 
+    \item $\bfX \sim \calN(\bfmu, \bfSigma) \implies \var{\bfX} = \bfSigma$ 
+    \item
+    If $\bfX$ follows a multivariate Normal distribution, then any linear transformation of $\bfX$ also follows a multivariate Normal. Example: $\bfX \sim \calN(\bfmu, \bfSigma) \implies A\bfX \sim \calN(A\bfmu, A\bfSigma{A^{\top}})$
+  \end{itemize}
 \end{itemize}
 
 \section{Gaussian Processes}
 
 \section{Bayesian Optimization}
 
-\end{multicols*}
+% \end{multicols*}
 \end{document}
