@@ -5,11 +5,8 @@ This is a weekly log of what work I have done on tasks for this research project
 ## Current & Ongoing Tasks
 
 - Coding: 
-    * [ ] Update the iterative GPs notebook to work properly with selection matrices 
-    * [ ] Rewrite the code to make selection matrices work as described in the paper
-    * [ ] ~~Create more helper functions to allow code to be extended to higher-dimensional input spaces~~
-    * [ ] Finish working on sequential/iterative GP notebook
-    * [ ] Create code for optimizing selection matrix in "one shot" (instead of sequentially)
+    * [ ] Compare posterior predictive errors between iterative and batch GP algorithms
+    * [ ] Compare runtime (empirical, not theoretical) between iterative and batch GP algorithms
 - Theoretical:
     * [ ] Update [theory/notes document](./Notes/Research-General-Notes.pdf)
 - Reading List:
@@ -23,9 +20,21 @@ This is a weekly log of what work I have done on tasks for this research project
 
 ## Completed Tasks (Organized by Week)
 
+### June 02 - June 09
+
+- [x] Create an entropy-based acquisition function in Pytorch
+- [x] Create a new notebook to compare [iterative and batch GP algorithms](./Code/IterGP-Comparison/iterative_batch_gp_comparison.ipynb)
+
+### May 26 - June 01
+
+- [x] Create code for 'batch' selection of action matrices
+- [x] Implement other test functions (Hartmann 6D) in Pytorch 
+- [x] Update notebooks to have more functions and more flexibility
+
 ### May 19 - May 25
 
-- [x] Go over the [pytorch Gradient Descent demo](/Code/Gradient-Descent-Demo/grad_descent_example.ipynb)
+- [x] Go over the [pytorch Gradient Descent demo](./Code/Gradient-Descent-Demo/grad_descent_example.ipynb)
+- [x] Update the iterative GPs notebook to work properly with selection matrices (completed, but incorrectly)
 
 ### May 12 - May 18
 
