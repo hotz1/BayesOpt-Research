@@ -46,32 +46,34 @@ We are interested in inference on the hidden variables ${z}_{1:m}$, which invoke
     p(z_{1:m} \mid x_{1:n}, \alpha) = \frac{p(z_{1:m}, x_{1:n} \mid \alpha)}{p(x_{1:n} \mid \alpha)} = \frac{p(z_{1:m}, x_{1:n} \mid \alpha)}{\int_{z}p(z_{1:m}, x_{1:n} \mid \alpha)dz}
 \end{equation}
 
-The denominator for this posterior distribution is often difficult to compute, if not fully intractable, so we must approximate the distribution $\prob{z_{1:m}\mid x_{1:n}, \alpha}$. One approach is to consider a \textbf{variational family} of distributions $\calQ = \{q(z_{1:m} \mid \nu)\}$ over the latent variables $z_{1:m}$, and finding the distribution in the family which is the most suitable (i.e. closest) proxy for the `true' posterior distribution $p(z_{1:m} \mid x_{1:n}, \alpha)$.
+The denominator for this posterior distribution is often difficult to compute, if not fully intractable, so we must approximate the distribution $\prob{z_{1:m}\mid x_{1:n}, \alpha}$. One approach is to consider a \textbf{variational family} of distributions $\calQ = \{q_{\lambda}(z_{1:m}): \lambda \in \Lambda\}$ over the latent variables $z_{1:m}$, and finding the distribution in the family which is the most suitable (i.e. closest) proxy for the `true' posterior distribution $p(z_{1:m} \mid x_{1:n}, \alpha)$.
 
 \section{Kullback-Leibler Divergence}
 To measure the `closeness' of two probability distributions $P$ and $Q$ defined on the same space, we can use the \textbf{Kullback-Leibler} (KL) divergence. This divergence is defined as 
 \begin{equation}
-    \KLdiv{P}{Q} := \int P(x)\log\left(\frac{P(x)}{Q(x)}\right)\textrm{d}P = \bbE_{P}\left[\log\left(\frac{P(x)}{Q(x)}\right)\right]
+    \KLdiv{P}{Q} := \int P(x)\log\left(\frac{P(x)}{Q(x)}\right)\textrm{d}P = \expec[P]{\log\left(\frac{P(x)}{Q(x)}\right)}
 \end{equation}
 Note that this is not a distance metric, as $\KLdiv{P}{Q} \ne \KLdiv{Q}{P}$. To get a distribution in our variational family which is close to the true posterior, we aim to have a low KL divergence.
 
 \section{Evidence Lower Bound}
-We define the \textbf{Evidence Lower Bound} (ELBO) as a function of our distribution which we can minimize for choosing the member of the variational family $q(z_{1:m} \mid \nu)$. For probability distributions $P, Q$, we have the following: 
+We define the \textbf{Evidence Lower Bound} (ELBO) as a function of our distribution, which we can use to choose the specific variational distribution $q_{\lambda}(z_{1:m})$, by finding $\lambda \in \Lambda$ to maximize the ELBO. 
+
+For probability distributions $P, Q$, we have the following: 
 \begin{align*}
     \log\left(P(x)\right) &= \log\left(\int P(x, z)\textrm{d}z\right) \tag{Marginal distribution}\\
     &= \log\left(\int P(x, z)\frac{Q(z)}{Q(z)}\textrm{d}z\right)\\
     &= \log\left(\int Q(z)\left[\frac{P(x,z)}{Q(z)}\right]\textrm{d}z\right)\\
-    &= \log\left(\bbE_{Q}\left[\frac{P(x, Z)}{Q(Z)}\right]\right)\\
-    &\ge \bbE_{Q}\left[\log\left(\frac{P(x, Z)}{Q(Z)}\right)\right] \tag{Jensen's Inequality}
+    &= \log\left(\expec[Q]{\frac{P(x, Z)}{Q(Z)}}\right)\\
+    &\ge \expec[Q]{\log\left(\frac{P(x, Z)}{Q(Z)}\right)} \tag{Jensen's Inequality}
 \end{align*}
-We define the ELBO as $\bbE_{Q}\left[\log\left(\frac{P(x, Z)}{Q(Z)}\right)\right] = \bbE_{Q}\left[\log\left({P(x, Z)}\right)\right] - \bbE_{Q}\left[\log\left({Q(Z)}\right)\right]$. Note that $-\KLdiv{Q}{P} = \bbE_{Q}\left[\log\left(\frac{P(x, Z)}{Q(Z)}\right)\right]$, so the ELBO is the negative KL divergence. Finding a distribution $Q(z) \in \calQ$ which maximizes the ELBO yields the tightest possible bound on the marginal probability $\log(P(x))$. 
+We define the ELBO as $\expec[Q]{\log\left(\frac{P(x, Z)}{Q(Z)}\right)} = \expec[Q]{\log\left({P(x, Z)}\right)} - \expec[Q]{\log\left({Q(Z)}\right)}$. Note that $-\KLdiv{Q}{P} = \expec[Q]{\log\left(\frac{P(x, Z)}{Q(Z)}\right)}$, so the ELBO is the negative KL divergence. Finding a distribution $Q(z) \in \calQ$ which maximizes the ELBO yields the tightest possible bound on the marginal probability $\log(P(x))$. 
 
 Additionally, for some marginal distribution $p(z \mid x)$ and some ``variational'' distribution $q(z) \in \calQ$ we have the following result:
 \begin{align*}
-    \KLdiv{q(z)}{p(z \mid x)} &= \bbE_{q}\left[\log\left(\frac{q(Z)}{p(Z \mid x)}\right)\right]\\
-    &= \bbE_{q}\left[\log\left(\frac{q(Z)}{p(x, Z)/p(x)}\right)\right]\\
-    &= \bbE_{q}\left[\log\left({q(Z)}\right)\right] - \bbE_{q}\left[\log\left({p(x, Z)}\right)\right] + \bbE_{q}\left[\log\left({p(x)}\right)\right]\\
-    &= \log(p(x)) - \bbE_{q}\left[\log\left(\frac{p(x, Z)}{q(Z)}\right)\right] \tag{$\log(p(x)) - \textrm{ELBO}$}\\
+    \KLdiv{q(z)}{p(z \mid x)} &= \expec[Q]{\log\left(\frac{q(Z)}{p(Z \mid x)}\right)}\\
+    &= \expec[Q]{\log\left(\frac{q(Z)}{p(x, Z)/p(x)}\right)}\\
+    &= \expec[Q]{\log\left({q(Z)}\right)} - \expec[Q]{\log\left({p(x, Z)}\right)} + \expec[Q]{\log\left({p(x)}\right)}\\
+    &= \log(p(x)) - \expec[Q]{\log\left(\frac{p(x, Z)}{q(Z)}\right)} \tag{$\log(p(x)) - \textrm{ELBO}$}\\
     &= \log(p(x)) + \KLdiv{q(z)}{p(x, z)} \tag{Alternative formulation}
 \end{align*}
 Thus, the KL divergence between the ``variational'' distribution $q(z) \in \calQ$ and the marginal distribution $p(z \mid x)$ is the difference between the log-marginal distribution and the ELBO, which is the Jensen gap.
@@ -79,7 +81,34 @@ Thus, the KL divergence between the ``variational'' distribution $q(z) \in \calQ
 As $\log(p(x))$ is constant, we see that maximizing the ELBO is equivalent to minimizing the KL divergence between the conditional posterior and variational distribution. 
 
 \section{EULBO}
+\subsection{Motivation}
 For Bayesian Optimization, a variational inference approach can be helpful as a means for approximation since exact Bayesian Optimization via a Gaussian Process requires $\calO(n^3)$ runtime.
 
-One potential issue with the use of VI in this setting is that the `traditional' variational inference setup requires choosing a distribution $q(z) \in \calQ$ which maximizes the ELBO. However, this is not ideal for BayesOpt, as the goal for BayesOpt is to simply find the global maximum of some unknown function $\fstar$, not to get a good global approximation of $\fstar$. 
+One potential issue with the use of VI in this setting is that the `traditional' variational inference setup requires choosing a distribution $q_{\lambda}(z) \in \calQ$ which maximizes the ELBO. However, this is not ideal for BayesOpt, as the goal for BayesOpt is to simply find the global maximum of some unknown function $\fstar$, not to get a good global approximation of $\fstar$. 
+
+For a Gaussian Process with an observed dataset $\calD$, we can derive the posterior $p(f \mid \calD)$ for a function $f$. With a utility function $u(x, f; \calD_{t})$ (e.g. expected improvement), we can define the \textbf{expected utility} as
+\begin{equation}
+    \alpha(x; \calD_{t}) := \int u(x, f; \calD_{t})p(f \mid \calD_{t})\textrm{d}f
+\end{equation}
+
+Through variational inference, we may approximate the posterior $p(f \mid \calD_{t})$ with $q_{\bfS}(f)$, where $\bfS \in \bbR^{n \times k}$ is an $n$-by-$k$ action matrix, yielding 
+\begin{equation}
+    \alpha(x; \calD_{t}) \approx \int u(x, f; \calD_{t})q_{\bfS}(f)\textrm{d}f 
+\end{equation}
+
+\newpage
+\subsection{EULBO Derivation}
+Based on the definitions above, we have the following: 
+\begin{align*}
+    \log\left(\alpha(x; \calD_{t})\right) &= \log\left(\int u(x, f; \calD_{t})p(f \mid \calD_{t})\textrm{d}f\right)\\
+    &= \log\left(\int u(x, f; \calD_{t})p(f \mid \calD_{t})\left(\frac{q_{\bfS}(f)}{q_{\bfS}(f)}\right)\textrm{d}f\right)\\
+    &= \log\left(\int u(x, f; \calD_{t})\left(\frac{p(f, \calD_{t})}{p(\calD_{t})}\right)\left(\frac{q_{\bfS}(f)}{q_{\bfS}(f)}\right)\textrm{d}f\right)\\
+    &= \log\left(\int q_{\bfS}(f)\left(\frac{u(x, f; \calD_{t})p(f, \calD_{t})}{p(\calD_{t})q_{\bfS}(f)}\right)\textrm{d}f\right)\\
+    &= \log\left(\expec[q_{\bfS}]{\frac{u(x, f; \calD_{t})p(f, \calD_{t})}{p(\calD_{t})q_{\bfS}(f)}}\right)\\
+    &\ge \expec[q_{\bfS}]{\log\left(\frac{u(x, f; \calD_{t})p(f, \calD_{t})}{p(\calD_{t})q_{\bfS}(f)}\right)}\tag{Jensen's Inequality}\\
+    &= \expec[q_{\bfS}]{\log\left(\frac{p(f, \calD_{t})}{q_{\bfS}(f)}\right)} + \expec[q_{\bfS}]{\log\left({u(x, f; \calD_{t})}\right)} - \log(Z) \tag{$Z = p(\calD_{t})$ is constant}
+\end{align*}
+Thus, we can express the EULBO of $q_{\bfS}$ in terms of the ELBO $\expec[q_{\bfS}]{\log\left(\frac{p(f, \calD_{t})}{q_{\bfS}(f)}\right)}$ and expected log-utility, $\expec[q_{\bfS}]{\log\left({u(x, f; \calD_{t})}\right)}$. As the EULBO is only used for optimization (i.e. selection of $\bfS$), we do not care about the $\log(Z)$ normalization constant.  
+
+Note that the expected log-utility is a function of $x$ defined on the domain of $f$. This optimization scheme involves a joint optimization to find $(x_{n+1}, \bfS_{n+1})$, as opposed to individual optimizations. 
 \end{document}
