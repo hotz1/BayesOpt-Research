@@ -8,5 +8,8 @@
 *.out
 *.synctex.gz
 
+# PDF versions of the notes (compile them yourself)
+**/Notes/*.pdf
+
 # ipynb checkpoints
 **/*.ipynb_checkpoints/    
