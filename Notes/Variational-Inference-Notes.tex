@@ -1,0 +1,85 @@
+\documentclass[11pt]{article}
+\input{macros/math-alphabets.tex}
+\input{macros/math-macros.tex}
+\input{macros/typesetting-macros.tex}
+\usepackage{parskip}
+\usepackage{scalefnt}
+\usepackage{caption,subcaption}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=cyan,
+    filecolor=magenta,      
+    urlcolor=blue
+}
+
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\Large\bfseries}
+  {}
+  {0pt}
+  {}
+  
+\titleformat{\subsection}
+  {\normalfont\large\bfseries}
+  {}                        
+  {0pt}                    
+  {}
+
+\pagenumbering{gobble}
+\numberwithin{figure}{section}
+\renewcommand{\thefigure}{\arabic{section}.\arabic{figure}}
+\numberwithin{equation}{section}
+\renewcommand{\theequation}{\arabic{section}.\arabic{equation}}
+
+\begin{document}
+
+\section{Variational Inference}
+
+Variational Inference (VI) is a method for approximating a conditional posterior distribution over latent/hidden variables in a Bayesian setting. This is a useful tool, as the resulting posterior distributions can often become computationally complex or entirely intractable. 
+
+\subsection{General Setup}
+We assume that ${x}_{1:n} = \{x_{1}, x_{2}, \dots, x_{n}\}$ are observations, with hidden variables ${z}_{1:m} = \{z_1, \dots, z_m\}$ and additional fixed (\textit{hyper}-)parameters $\alpha$. 
+
+We are interested in inference on the hidden variables ${z}_{1:m}$, which invokes a posterior conditional distribution of the form 
+\begin{equation}
+    p(z_{1:m} \mid x_{1:n}, \alpha) = \frac{p(z_{1:m}, x_{1:n} \mid \alpha)}{p(x_{1:n} \mid \alpha)} = \frac{p(z_{1:m}, x_{1:n} \mid \alpha)}{\int_{z}p(z_{1:m}, x_{1:n} \mid \alpha)dz}
+\end{equation}
+
+The denominator for this posterior distribution is often difficult to compute, if not fully intractable, so we must approximate the distribution $\prob{z_{1:m}\mid x_{1:n}, \alpha}$. One approach is to consider a \textbf{variational family} of distributions $\calQ = \{q(z_{1:m} \mid \nu)\}$ over the latent variables $z_{1:m}$, and finding the distribution in the family which is the most suitable (i.e. closest) proxy for the `true' posterior distribution $p(z_{1:m} \mid x_{1:n}, \alpha)$.
+
+\section{Kullback-Leibler Divergence}
+To measure the `closeness' of two probability distributions $P$ and $Q$ defined on the same space, we can use the \textbf{Kullback-Leibler} (KL) divergence. This divergence is defined as 
+\begin{equation}
+    \KLdiv{P}{Q} := \int P(x)\log\left(\frac{P(x)}{Q(x)}\right)\textrm{d}P = \bbE_{P}\left[\log\left(\frac{P(x)}{Q(x)}\right)\right]
+\end{equation}
+Note that this is not a distance metric, as $\KLdiv{P}{Q} \ne \KLdiv{Q}{P}$. To get a distribution in our variational family which is close to the true posterior, we aim to have a low KL divergence.
+
+\section{Evidence Lower Bound}
+We define the \textbf{Evidence Lower Bound} (ELBO) as a function of our distribution which we can minimize for choosing the member of the variational family $q(z_{1:m} \mid \nu)$. For probability distributions $P, Q$, we have the following: 
+\begin{align*}
+    \log\left(P(x)\right) &= \log\left(\int P(x, z)\textrm{d}z\right) \tag{Marginal distribution}\\
+    &= \log\left(\int P(x, z)\frac{Q(z)}{Q(z)}\textrm{d}z\right)\\
+    &= \log\left(\int Q(z)\left[\frac{P(x,z)}{Q(z)}\right]\textrm{d}z\right)\\
+    &= \log\left(\bbE_{Q}\left[\frac{P(x, Z)}{Q(Z)}\right]\right)\\
+    &\ge \bbE_{Q}\left[\log\left(\frac{P(x, Z)}{Q(Z)}\right)\right] \tag{Jensen's Inequality}
+\end{align*}
+We define the ELBO as $\bbE_{Q}\left[\log\left(\frac{P(x, Z)}{Q(Z)}\right)\right] = \bbE_{Q}\left[\log\left({P(x, Z)}\right)\right] - \bbE_{Q}\left[\log\left({Q(Z)}\right)\right]$. Note that $-\KLdiv{Q}{P} = \bbE_{Q}\left[\log\left(\frac{P(x, Z)}{Q(Z)}\right)\right]$, so the ELBO is the negative KL divergence. Finding a distribution $Q(z) \in \calQ$ which maximizes the ELBO yields the tightest possible bound on the marginal probability $\log(P(x))$. 
+
+Additionally, for some marginal distribution $p(z \mid x)$ and some ``variational'' distribution $q(z) \in \calQ$ we have the following result:
+\begin{align*}
+    \KLdiv{q(z)}{p(z \mid x)} &= \bbE_{q}\left[\log\left(\frac{q(Z)}{p(Z \mid x)}\right)\right]\\
+    &= \bbE_{q}\left[\log\left(\frac{q(Z)}{p(x, Z)/p(x)}\right)\right]\\
+    &= \bbE_{q}\left[\log\left({q(Z)}\right)\right] - \bbE_{q}\left[\log\left({p(x, Z)}\right)\right] + \bbE_{q}\left[\log\left({p(x)}\right)\right]\\
+    &= \log(p(x)) - \bbE_{q}\left[\log\left(\frac{p(x, Z)}{q(Z)}\right)\right] \tag{$\log(p(x)) - \textrm{ELBO}$}\\
+    &= \log(p(x)) + \KLdiv{q(z)}{p(x, z)} \tag{Alternative formulation}
+\end{align*}
+Thus, the KL divergence between the ``variational'' distribution $q(z) \in \calQ$ and the marginal distribution $p(z \mid x)$ is the difference between the log-marginal distribution and the ELBO, which is the Jensen gap.
+
+As $\log(p(x))$ is constant, we see that maximizing the ELBO is equivalent to minimizing the KL divergence between the conditional posterior and variational distribution. 
+
+\section{EULBO}
+For Bayesian Optimization, a variational inference approach can be helpful as a means for approximation since exact Bayesian Optimization via a Gaussian Process requires $\calO(n^3)$ runtime.
+
+One potential issue with the use of VI in this setting is that the `traditional' variational inference setup requires choosing a distribution $q(z) \in \calQ$ which maximizes the ELBO. However, this is not ideal for BayesOpt, as the goal for BayesOpt is to simply find the global maximum of some unknown function $\fstar$, not to get a good global approximation of $\fstar$. 
+\end{document}
