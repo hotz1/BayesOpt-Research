@@ -5,22 +5,27 @@ This is a weekly log of what work I have done on tasks for this research project
 ## Current & Ongoing Tasks
 
 - Coding: 
+    * [ ] Create Python notebook for fitting GPs with variational inference based methods (EULBO)
     * [ ] Compare posterior predictive errors between iterative and batch GP algorithms
     * [ ] Compare runtime (empirical, not theoretical) between iterative and batch GP algorithms
 - Theoretical:
-    * [ ] Update [theory/notes document](./Notes/Research-General-Notes.pdf)
+    * [ ] Update [theory/notes document](./Notes/Research-General-Notes.tex)
 - Reading List:
-    * [ ] *Computation-Aware Gaussian Processes* 
-    * [ ] *Approximation-Aware Bayesian Optimization* 
-    * [ ] Variational Inference paper
-    * [ ] *Posterior and Computational Uncertainty in Gaussian Processes* (<https://arxiv.org/pdf/2205.15449>)
+    * [x] *Computation-Aware Gaussian Processes* 
+    * [x] *Approximation-Aware Bayesian Optimization* 
+    * [x] *Variational Inference papers*
+    * [x] *Posterior and Computational Uncertainty in Gaussian Processes* (<https://arxiv.org/pdf/2205.15449>)
 - Other:
 
 ---
 
 ## Completed Tasks (Organized by Week)
 
-### June 02 - June 09
+### June 09 - June 15
+
+- [x] Create [Variational Inference Notes](./Notes/Variational-Inference-Notes.tex)
+
+### June 02 - June 08
 
 - [x] Create an entropy-based acquisition function in Pytorch
 - [x] Create a new notebook to compare [iterative and batch GP algorithms](./Code/IterGP-Comparison/iterative_batch_gp_comparison.ipynb)
