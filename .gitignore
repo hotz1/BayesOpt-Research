@@ -13,3 +13,9 @@
 
 # ipynb checkpoints
 **/*.ipynb_checkpoints/    
+
+# Rhistory files and other R files
+*.Rhistory
+*.Rapp.history
+*.Ruser
+*.Ruserdata
