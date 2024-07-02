@@ -1,27 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# # ELBO vs EULBO Comparison
-# 
-# A Python notebook regarding Gaussian Processes based primarily on the pre-prints of two papers: *Computation-Aware Gaussian Processes* and *Approximation-Aware Bayesian Optimization*.
-# 
-# ## Problem Setup
-# 
-# We want to use Gaussian Process regression to perform Bayesian optimization to find $x^{*} = \arg\max_{x \in \mathcal{X}}f(x)$, for the unknown objective function $f(\cdot): \mathcal{X} \to \mathbb{R}$, for an unknown real-valued function defined on the **compact** domain $\mathcal{X} \subset \mathbb{R}^{d}$. Initially, we have some existing dataset $\mathcal{D}_{0} = \{(x_{i}, y_{i})\}_{i=1}^{n}$, with $x_{i} \in \mathbb{R}^{d}, y_{i} \in \mathbb{R}$.
-# 
-# Unfortunately, the standard `BayesOpt` formulation has $\mathcal{O}(n^3)$ time complexity, as the "proper" mathematical formulation requires a matrix inversion. To reduce the computational complexity, we include an "action matrix" $\mathbf{S}_{k} \in \mathbb{R}^{n \times k}$ for $k \ll n$ and performing Bayesian optimization on the "simplified" dataset $\mathcal{D}'_{0} = (\mathbf{S}_{k}^{\top}\mathbf{X}, \mathbf{S}_{k}^{\top}\mathbf{y})$, which yields $\mathcal{O}(kn^2)$ time complexity.
-# 
-# In this notebook, we provide an altered Variational Inference (VI) approach to this problem. The variational family $\mathcal{Q}_{n,k}$ of functions is indexed by the matrices (variational parameters) $\mathbf{S}_k \in \mathbb{R}^{n \times k}$.
-# 
-# ## Goal
-# 
-# Beyond simply using the ELBO for the purposes of choosing a new action matrix and a new point for the dataset, we perform a joint optimization over the actions and new datapoints simultaneously, and this is done with a utility-weighted acquisition function (EULBO). 
-# 
-# The goal of this notebook is to compare the utility-weighted EULBO approach to ELBO-based approaches which do not incorporate a utility function and approaches for this maximization which perform individual acquisitions instead of optimizing over the new action(s) and new data point(s) in tandem.
-
-# In[1]:
-
-
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,10 +6,11 @@ STD_normal = torch.distributions.normal.Normal(0, 1) # Standard Normal
 
 # from scipy.stats import norm
 
-try:
-    import jaxtyping
-except ImportError:
-    get_ipython().run_line_magic('pip', 'install jaxtyping')
+# try:
+#     import jaxtyping
+# except ImportError:
+#     get_ipython().run_line_magic('pip', 'install jaxtyping')
+import jaxtyping
 
 from typing import Optional, Tuple
 # Type hints are strictly optional, but personally I find that they make code more reasonable
@@ -49,7 +26,7 @@ import tqdm.notebook as tqdm
 import pandas as pd
 import os as oper
 
-get_ipython().run_line_magic('matplotlib', 'inline')
+# get_ipython().run_line_magic('matplotlib', 'inline')
 
 # Set DTYPE and DEVICE variables for torch tensors
 DTYPE = torch.float32
@@ -1193,8 +1170,8 @@ simulation_dict = ELBO_simulations(D, N, ls, os, sigma_sq, n_simulations, n_epoc
 sim_df = pd.DataFrame(simulation_dict)
 
 # Count existing number of files
-n_files = len(oper.listdir('./Sim-Results/20240702/'))
+n_files = len(oper.listdir('./Code/EULBO/Sim-Results/20240702/'))
 
 # Save file locally
-sim_df.to_csv(f"./Sim-Results/20240702/Separate_Simulation_Results_{n_files}.csv", index = False)
+sim_df.to_csv(f"./Code/EULBO/Sim-Results/20240702/Separate_Simulation_Results_{n_files}.csv", index = False)
 
