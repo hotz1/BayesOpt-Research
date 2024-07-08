@@ -14,7 +14,8 @@ from collections.abc import Callable
 
 from torch import Tensor
 
-import tqdm.notebook as tqdm
+# import tqdm.notebook as tqdm
+from tqdm import tqdm
 import pandas as pd
 import os as oper
 import fnmatch
@@ -341,7 +342,8 @@ def ELBO_simulations(
         true_best = true_y[y.argmax()].item()
         simulation_dict["trueBest"].append(true_best)
         
-        for epoch in range(n_epochs):
+        # for epoch in range(n_epochs):
+        for epoch in tqdm(range(n_epochs), leave = False):
             # Initialize S, x_new, GP hyperparameters randomly
             S_raw = torch.randn(X.shape[0], n_acts)
             ls_raw = torch.randn(1, D)
