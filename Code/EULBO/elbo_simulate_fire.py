@@ -465,10 +465,10 @@ def ELBO_Fire(
     sim_df = pd.DataFrame(simulation_dict)
 
     # Count existing number of csv files
-    n_csvs = len(fnmatch.filter(oper.listdir('./Code/EULBO/Sim-Results/Cluster/'), '*.csv'))
+    n_csvs = len(fnmatch.filter(oper.listdir('./Code/EULBO/Sim-Results/RawData/'), '*.csv'))
 
     # Save file locally
-    sim_df.to_csv(f"./Code/EULBO/Sim-Results/Cluster/Separate_Simulation_Results_{n_csvs}.csv",
+    sim_df.to_csv(f"./Code/EULBO/Sim-Results/RawData/ELBO_Simulation_Results_{n_csvs}.csv",
                   index = False)
 
     return None
