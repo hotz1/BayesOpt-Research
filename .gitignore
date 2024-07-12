@@ -21,3 +21,6 @@
 *.Ruserdata
 *.Rdata
 *.here
+
+# Image files
+*.png
