@@ -19,6 +19,7 @@ from tqdm import tqdm
 import pandas as pd
 import os as oper
 import fnmatch
+import time
 import fire
 
 # Set DTYPE and DEVICE variables for torch tensors
@@ -304,7 +305,7 @@ def ELBO_simulations(
     n_simulations: Integer,
     n_epochs: Integer,
 ) -> dict:
-
+    
     simulation_dict = {
         "Method": [], 
         "Simulation": [], 
@@ -320,6 +321,9 @@ def ELBO_simulations(
     }
 
     for sim in range(n_simulations):
+
+        starttime = time.process_time_ns()
+
         # Simulate dataset 
         X = torch.rand(N, D)
         y = observe(hartmann_six, X, truenoise)
@@ -439,7 +443,10 @@ def ELBO_simulations(
             simulation_dict["trueBest"].append(true_best)
 
         # Print progress update
-        print(f"Completed {n_epochs} epochs for simulation {sim + 1}!")
+
+        endtime = time.process_time_ns()
+
+        print(f"Completed {n_epochs} epochs for simulation {sim + 1}! CPU Time Requred: {(endtime - starttime) * 1e-9:.3f} seconds")
 
     return simulation_dict
 
