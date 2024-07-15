@@ -300,7 +300,7 @@ def normalize_cols(S: Float[Tensor, "R C"]) -> Float[Tensor, "R C"]:
 def ELBO_simulations(
     D: Integer, 
     N: Integer,
-    n_acts: Integer,
+    n_actions: Integer,
     truenoise: Float[Tensor, "1 1"],
     n_simulations: Integer,
     n_epochs: Integer,
@@ -317,12 +317,11 @@ def ELBO_simulations(
         "OutputScale": [],
         "SigmaSq": [],
         "obsBest": [],
-        "trueBest": []
+        "trueBest": [],
+        "cpuTime": []
     }
 
     for sim in range(n_simulations):
-
-        starttime = time.process_time_ns()
 
         # Simulate dataset 
         X = torch.rand(N, D)
@@ -334,7 +333,7 @@ def ELBO_simulations(
         simulation_dict["Simulation"].append(sim + 1)
         simulation_dict["Epoch"].append(0)
         simulation_dict["N"].append(N)
-        simulation_dict["Actions"].append(n_acts)
+        simulation_dict["Actions"].append(n_actions)
         simulation_dict["TrueNoise"].append(truenoise.item())
         simulation_dict["LengthScale"].append(np.nan)
         simulation_dict["OutputScale"].append(np.nan)
@@ -345,11 +344,14 @@ def ELBO_simulations(
     
         true_best = true_y[y.argmax()].item()
         simulation_dict["trueBest"].append(true_best)
+
+        simulation_dict["cpuTime"].append(np.nan)
         
-        # for epoch in range(n_epochs):
         for epoch in tqdm(range(n_epochs), leave = False):
+            epoch_st = time.process_time()
+
             # Initialize S, x_new, GP hyperparameters randomly
-            S_raw = torch.randn(X.shape[0], n_acts)
+            S_raw = torch.randn(X.shape[0], n_actions)
             ls_raw = torch.randn(1, D)
             os_raw = torch.randn(1, 1)
             sigma_sq_raw = torch.randn(1, 1)
@@ -376,7 +378,7 @@ def ELBO_simulations(
                     STKS_chol = torch.linalg.cholesky(STKS)
                 except:
                     try:
-                        STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_acts))
+                        STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except:
                         break   
                         
@@ -391,7 +393,7 @@ def ELBO_simulations(
                 STKS_chol = torch.linalg.cholesky(STKS)
             except:
                 try:
-                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_acts))
+                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                 except:
                     break 
             STKS_chol.detach_()
@@ -424,13 +426,15 @@ def ELBO_simulations(
             X = torch.cat([X, x_new], -2)
             y = torch.cat([y, y_new], -1)
             true_y = torch.cat([true_y, true_y_new], -1)
+
+            epoch_et = time.process_time()
         
             # Record info for the epoch
             simulation_dict["Method"].append("Separate")
             simulation_dict["Simulation"].append(sim + 1)
             simulation_dict["Epoch"].append(epoch + 1)
             simulation_dict["N"].append(N)
-            simulation_dict["Actions"].append(n_acts)
+            simulation_dict["Actions"].append(n_actions)
             simulation_dict["TrueNoise"].append(truenoise.item())
             simulation_dict["LengthScale"].append(ls.tolist())
             simulation_dict["OutputScale"].append(os.item())
@@ -442,17 +446,16 @@ def ELBO_simulations(
             true_best = true_y[y.argmax()].item()
             simulation_dict["trueBest"].append(true_best)
 
+            simulation_dict["cpuTime"].append(epoch_et - epoch_st)
+
         # Print progress update
-
-        endtime = time.process_time_ns()
-
-        print(f"Completed {n_epochs} epochs for simulation {sim + 1}! CPU Time Requred: {(endtime - starttime) * 1e-9:.3f} seconds")
+        # print(f"Completed {n_epochs} epochs for simulation {sim + 1}!")
 
     return simulation_dict
 
 def ELBO_Fire( 
     N: Integer,
-    n_acts: Integer,
+    n_actions: Integer,
     n_simulations: Integer,
     n_epochs: Integer,
 ) -> None:
@@ -461,8 +464,8 @@ def ELBO_Fire(
     truenoise = torch.zeros(1,1)
 
     # Run simulations one at a time (more useful to avoid timeouts)
-    for i in range(n_simulations):
-        simulation_dict = ELBO_simulations(D, N, n_acts, truenoise, 1, n_epochs)
+    for sim in range(n_simulations):
+        simulation_dict = ELBO_simulations(D, N, n_actions, truenoise, 1, n_epochs)
         sim_df = pd.DataFrame(simulation_dict)
         
         # Count existing number of csv files
@@ -471,8 +474,10 @@ def ELBO_Fire(
         # Save file locally
         sim_df.to_csv(f"./Code/EULBO/Sim-Results/RawData/ELBO_Simulation_Results_{n_csvs}.csv", index = False)
 
+        # Print progress update
+        print(f"Completed {n_epochs} epochs for simulation {sim + 1}!")
+
     return None
 
 if __name__ == '__main__':
-    # TODO: Make this work (save file locally, etc.) 
     fire.Fire({'ELBO_Fire': ELBO_Fire})
