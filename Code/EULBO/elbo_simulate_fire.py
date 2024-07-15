@@ -449,7 +449,7 @@ def ELBO_simulations(
             simulation_dict["cpuTime"].append(epoch_et - epoch_st)
 
         # Print progress update
-        # print(f"Completed {n_epochs} epochs for simulation {sim + 1}!")
+        print(f"Completed {n_epochs} epochs for simulation {sim + 1}!")
 
     return simulation_dict
 
@@ -463,19 +463,14 @@ def ELBO_Fire(
     D = 6
     truenoise = torch.zeros(1,1)
 
-    # Run simulations one at a time (more useful to avoid timeouts)
-    for sim in range(n_simulations):
-        simulation_dict = ELBO_simulations(D, N_init, n_actions, truenoise, 1, n_epochs)
-        sim_df = pd.DataFrame(simulation_dict)
+    simulation_dict = ELBO_simulations(D, N_init, n_actions, truenoise, n_simulations, n_epochs)
+    sim_df = pd.DataFrame(simulation_dict)
         
-        # Count existing number of csv files
-        n_csvs = len(fnmatch.filter(oper.listdir('./Code/EULBO/Sim-Results/RawData/'), '*.csv'))
+    # Count existing number of csv files
+    n_csvs = len(fnmatch.filter(oper.listdir('./Code/EULBO/Sim-Results/RawData/'), '*.csv'))
 
-        # Save file locally
-        sim_df.to_csv(f"./Code/EULBO/Sim-Results/RawData/ELBO_Simulation_Results_{n_csvs}.csv", index = False)
-
-        # Print progress update
-        print(f"Completed {n_epochs} epochs for simulation {sim + 1}!")
+    # Save file locally
+    sim_df.to_csv(f"./Code/EULBO/Sim-Results/RawData/ELBO_Simulation_Results_{n_csvs}.csv", index = False)
 
     return None
 
