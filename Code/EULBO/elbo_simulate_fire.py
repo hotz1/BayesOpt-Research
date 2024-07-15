@@ -460,16 +460,16 @@ def ELBO_Fire(
     D = 6
     truenoise = torch.zeros(1,1)
 
-    # Run simulations
-    simulation_dict = ELBO_simulations(D, N, n_acts, truenoise, n_simulations, n_epochs)
-    sim_df = pd.DataFrame(simulation_dict)
+    # Run simulations one at a time (more useful to avoid timeouts)
+    for i in range(n_simulations):
+        simulation_dict = ELBO_simulations(D, N, n_acts, truenoise, 1, n_epochs)
+        sim_df = pd.DataFrame(simulation_dict)
+        
+        # Count existing number of csv files
+        n_csvs = len(fnmatch.filter(oper.listdir('./Code/EULBO/Sim-Results/RawData/'), '*.csv'))
 
-    # Count existing number of csv files
-    n_csvs = len(fnmatch.filter(oper.listdir('./Code/EULBO/Sim-Results/RawData/'), '*.csv'))
-
-    # Save file locally
-    sim_df.to_csv(f"./Code/EULBO/Sim-Results/RawData/ELBO_Simulation_Results_{n_csvs}.csv",
-                  index = False)
+        # Save file locally
+        sim_df.to_csv(f"./Code/EULBO/Sim-Results/RawData/ELBO_Simulation_Results_{n_csvs}.csv", index = False)
 
     return None
 
