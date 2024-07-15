@@ -299,7 +299,7 @@ def normalize_cols(S: Float[Tensor, "R C"]) -> Float[Tensor, "R C"]:
 
 def ELBO_simulations(
     D: Integer, 
-    N: Integer,
+    N_init: Integer,
     n_actions: Integer,
     truenoise: Float[Tensor, "1 1"],
     n_simulations: Integer,
@@ -324,7 +324,7 @@ def ELBO_simulations(
     for sim in range(n_simulations):
 
         # Simulate dataset 
-        X = torch.rand(N, D)
+        X = torch.rand(N_init, D)
         y = observe(hartmann_six, X, truenoise)
         true_y = hartmann_six(X)
 
@@ -332,7 +332,7 @@ def ELBO_simulations(
         simulation_dict["Method"].append("Separate")
         simulation_dict["Simulation"].append(sim + 1)
         simulation_dict["Epoch"].append(0)
-        simulation_dict["N"].append(N)
+        simulation_dict["N"].append(X.shape[-2])
         simulation_dict["Actions"].append(n_actions)
         simulation_dict["TrueNoise"].append(truenoise.item())
         simulation_dict["LengthScale"].append(np.nan)
@@ -351,7 +351,7 @@ def ELBO_simulations(
             epoch_st = time.process_time()
 
             # Initialize S, x_new, GP hyperparameters randomly
-            S_raw = torch.randn(X.shape[0], n_actions)
+            S_raw = torch.randn(X.shape[-2], n_actions)
             ls_raw = torch.randn(1, D)
             os_raw = torch.randn(1, 1)
             sigma_sq_raw = torch.randn(1, 1)
@@ -433,7 +433,7 @@ def ELBO_simulations(
             simulation_dict["Method"].append("Separate")
             simulation_dict["Simulation"].append(sim + 1)
             simulation_dict["Epoch"].append(epoch + 1)
-            simulation_dict["N"].append(N)
+            simulation_dict["N"].append(X.shape[-2])
             simulation_dict["Actions"].append(n_actions)
             simulation_dict["TrueNoise"].append(truenoise.item())
             simulation_dict["LengthScale"].append(ls.tolist())
@@ -454,7 +454,7 @@ def ELBO_simulations(
     return simulation_dict
 
 def ELBO_Fire( 
-    N: Integer,
+    N_init: Integer,
     n_actions: Integer,
     n_simulations: Integer,
     n_epochs: Integer,
@@ -465,7 +465,7 @@ def ELBO_Fire(
 
     # Run simulations one at a time (more useful to avoid timeouts)
     for sim in range(n_simulations):
-        simulation_dict = ELBO_simulations(D, N, n_actions, truenoise, 1, n_epochs)
+        simulation_dict = ELBO_simulations(D, N_init, n_actions, truenoise, 1, n_epochs)
         sim_df = pd.DataFrame(simulation_dict)
         
         # Count existing number of csv files
