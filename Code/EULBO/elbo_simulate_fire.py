@@ -15,7 +15,7 @@ from collections.abc import Callable
 from torch import Tensor
 
 # import tqdm.notebook as tqdm
-from tqdm import tqdm
+# from tqdm import tqdm
 import pandas as pd
 import os as oper
 import fnmatch
@@ -347,7 +347,8 @@ def ELBO_simulations(
 
         simulation_dict["cpuTime"].append(np.nan)
         
-        for epoch in tqdm(range(n_epochs), leave = False):
+        # for epoch in tqdm(range(n_epochs), leave = False):
+        for epoch in range(n_epochs):
             epoch_st = time.process_time()
 
             # Initialize S, x_new, GP hyperparameters randomly
@@ -505,7 +506,8 @@ def ELBO_sqrt_simulate(
 
         simulation_dict["cpuTime"].append(np.nan)
         
-        for epoch in tqdm(range(n_epochs), leave = False):
+        # for epoch in tqdm(range(n_epochs), leave = False):
+        for epoch in range(n_epochs):
             epoch_st = time.process_time()
 
             # Initialize S, x_new, GP hyperparameters randomly
