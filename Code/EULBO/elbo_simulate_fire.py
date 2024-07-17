@@ -621,7 +621,7 @@ def ELBO_sqrt_simulate(
 
     return simulation_dict
 
-def ELBO_Fire( 
+def ELBO_Fixed( 
     N_init: Integer,
     n_actions: Integer,
     n_simulations: Integer,
@@ -674,5 +674,5 @@ def ELBO_SQRT(
     return None
 
 if __name__ == '__main__':
-    fire.Fire({'ELBO_Fire': ELBO_Fire,
+    fire.Fire({'ELBO_Fixed': ELBO_Fixed,
                'ELBO_SQRT': ELBO_SQRT})
