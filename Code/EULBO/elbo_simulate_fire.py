@@ -644,7 +644,7 @@ def ELBO_Fixed(
     n_csvs = len(fnmatch.filter(oper.listdir('./Code/EULBO/Sim-Results/RawData/'), '*.csv'))
 
     # Save file locally
-    sim_df.to_csv(f"./Code/EULBO/Sim-Results/RawData/ELBO_Simulation_Results_{n_csvs}.csv", index = False)
+    sim_df.to_csv(f"./Code/EULBO/Sim-Results/RawData/ELBO_Fixed_Results_{n_csvs}.csv", index = False)
 
     return None
 
