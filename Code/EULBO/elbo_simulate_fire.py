@@ -297,7 +297,7 @@ def normalize_cols(S: Float[Tensor, "R C"]) -> Float[Tensor, "R C"]:
     # Divide column-wise by the L2 norm
     return torch.div(S, col_norms)
 
-def ELBO_simulations(
+def ELBO_fixed_simulate(
     D: Integer, 
     N_init: Integer,
     n_actions: Integer,
@@ -627,6 +627,11 @@ def ELBO_Fixed(
     n_simulations: Integer,
     n_epochs: Integer,
 ) -> None:
+    r"""
+    A function used by Fire to call ELBO_fixed_simulate from the command line and save results
+    locally as a csv file
+    """
+
     # Set two constants
     D = 6    
     truenoise = torch.zeros(1,1)
@@ -637,7 +642,7 @@ def ELBO_Fixed(
     n_simulations = int(n_simulations)
     n_epochs = int(n_epochs)
 
-    simulation_dict = ELBO_simulations(D, N_init, n_actions, truenoise, n_simulations, n_epochs)
+    simulation_dict = ELBO_fixed_simulate(D, N_init, n_actions, truenoise, n_simulations, n_epochs)
     sim_df = pd.DataFrame(simulation_dict)
         
     # Count existing number of csv files
@@ -653,6 +658,11 @@ def ELBO_SQRT(
     n_simulations: Integer,
     n_epochs: Integer,
 ) -> None:
+    r"""
+    A function used by Fire to call ELBO_sqrt_simulate from the command line and save results
+    locally as a csv file
+    """
+
     # Set two constants
     D = 6
     truenoise = torch.zeros(1,1)
@@ -674,5 +684,6 @@ def ELBO_SQRT(
     return None
 
 if __name__ == '__main__':
+    # Expose the simulation functions to the CLI using fire.Fire
     fire.Fire({'ELBO_Fixed': ELBO_Fixed,
                'ELBO_SQRT': ELBO_SQRT})
