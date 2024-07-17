@@ -622,8 +622,14 @@ def ELBO_Fire(
     n_epochs: Integer,
 ) -> None:
     # Set two constants
-    D = 6
+    D = 6    
     truenoise = torch.zeros(1,1)
+
+    # Ensure parameters are integers
+    N_init = int(N_init)
+    n_actions = int(n_actions)
+    n_simulations = int(n_simulations)
+    n_epochs = int(n_epochs)
 
     simulation_dict = ELBO_simulations(D, N_init, n_actions, truenoise, n_simulations, n_epochs)
     sim_df = pd.DataFrame(simulation_dict)
@@ -644,6 +650,11 @@ def ELBO_SQRT(
     # Set two constants
     D = 6
     truenoise = torch.zeros(1,1)
+
+    # Ensure parameters are integers
+    N_init = int(N_init)
+    n_simulations = int(n_simulations)
+    n_epochs = int(n_epochs)
 
     simulation_dict = ELBO_sqrt_simulate(D, N_init, truenoise, n_simulations, n_epochs)
     sim_df = pd.DataFrame(simulation_dict)
