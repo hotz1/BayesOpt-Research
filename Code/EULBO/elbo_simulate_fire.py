@@ -312,6 +312,7 @@ def ELBO_simulations(
         "Epoch": [], 
         "N":[],
         "Actions": [],
+        "ActsName": [],
         "TrueNoise": [],
         "LengthScale": [],
         "OutputScale": [],
@@ -334,6 +335,7 @@ def ELBO_simulations(
         simulation_dict["Epoch"].append(0)
         simulation_dict["N"].append(X.shape[-2])
         simulation_dict["Actions"].append(n_actions)
+        simulation_dict["ActsName"].append(str(n_actions) + " Actions")
         simulation_dict["TrueNoise"].append(truenoise.item())
         simulation_dict["LengthScale"].append(np.nan)
         simulation_dict["OutputScale"].append(np.nan)
@@ -436,6 +438,7 @@ def ELBO_simulations(
             simulation_dict["Epoch"].append(epoch + 1)
             simulation_dict["N"].append(X.shape[-2])
             simulation_dict["Actions"].append(n_actions)
+            simulation_dict["ActsName"].append(str(n_actions) + " Actions")
             simulation_dict["TrueNoise"].append(truenoise.item())
             simulation_dict["LengthScale"].append(ls.tolist())
             simulation_dict["OutputScale"].append(os.item())
@@ -468,6 +471,7 @@ def ELBO_sqrt_simulate(
         "Epoch": [], 
         "N":[],
         "Actions": [],
+        "ActsName": [],
         "TrueNoise": [],
         "LengthScale": [],
         "OutputScale": [],
@@ -492,6 +496,7 @@ def ELBO_sqrt_simulate(
 
         n_actions = math.floor(math.sqrt(X.shape[-2]))
         simulation_dict["Actions"].append(n_actions)
+        simulation_dict["ActsName"].append("sqrt(N) Actions")
 
         simulation_dict["TrueNoise"].append(truenoise.item())
         simulation_dict["LengthScale"].append(np.nan)
@@ -596,6 +601,7 @@ def ELBO_sqrt_simulate(
 
             n_actions = math.floor(math.sqrt(X.shape[-2]))
             simulation_dict["Actions"].append(n_actions)
+            simulation_dict["ActsName"].append("sqrt(N) Actions")
 
             simulation_dict["TrueNoise"].append(truenoise.item())
             simulation_dict["LengthScale"].append(ls.tolist())
