@@ -681,7 +681,7 @@ def ELBO_SQRT(
     if oper.path.exists(result_filename):
         curr_results = pd.read_csv(result_filename)
         sim_df["Simulation"] += max(curr_results["Simulation"])
-        curr_results = pd.concat(curr_results, sim_df)
+        curr_results = pd.concat([curr_results, sim_df])
     else:
         curr_results = sim_df
     
