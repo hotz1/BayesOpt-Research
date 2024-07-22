@@ -621,7 +621,7 @@ def ELBO_sqrt_simulate(
 
     return simulation_dict
 
-def BayesOpt_simulate(
+def ELBO_bayesopt_simulate(
     D: Integer, 
     N_init: Integer,
     truenoise: Float[Tensor, "1 1"],
@@ -675,16 +675,18 @@ def BayesOpt_simulate(
 
         simulation_dict["cpuTime"].append(np.nan)
         
-        # for epoch in tqdm(range(n_epochs), leave = False):
         for epoch in range(n_epochs):
             epoch_st = time.process_time()
 
-            # Initialize S, x_new, GP hyperparameters randomly
+            # Fixed action matrix (just identity matrix)
+            S_normed = torch.eye(n_actions)
+
+            # Initialize x_new, GP hyperparameters randomly
             ls_raw = torch.randn(1, D)
             os_raw = torch.randn(1, 1)
             sigma_sq_raw = torch.randn(1, 1)
             x_new_raw = torch.rand(1, D).logit()
-
+            
             ls_opt = torch.nn.Parameter(ls_raw)
             os_opt = torch.nn.Parameter(os_raw)
             sigma_sq_opt = torch.nn.Parameter(sigma_sq_raw)
@@ -711,8 +713,8 @@ def BayesOpt_simulate(
                 gain_S.backward()
                 optimizer_S.step()
                 optimizer_S.zero_grad()
-                         
-            STKS = KXX.detach()
+                          
+            STKS = KXX
             try:
                 STKS_chol = torch.linalg.cholesky(STKS)
             except:
@@ -731,7 +733,7 @@ def BayesOpt_simulate(
                 x_normed = x_new_opt.sigmoid()  
                 
                 # Compute the variational inference distribution q_S(f) = f|(S'D) at x_normed
-                VI_mean, VI_var = compute_posterior_mean_and_variance_action(x_normed, X, y, torch.eye(n_actions), STKS_chol, ls, os)
+                VI_mean, VI_var = compute_posterior_mean_and_variance_action(x_normed, X, y, S_normed, STKS_chol, ls, os)
                 VI_sd = VI_var.clamp(min = 1.0e-10).sqrt()
 
                 # Explicitly compute log(expected improvement)
@@ -758,9 +760,9 @@ def BayesOpt_simulate(
             simulation_dict["Epoch"].append(epoch + 1)
             simulation_dict["N"].append(X.shape[-2])
 
-            n_actions = math.floor(math.sqrt(X.shape[-2]))
+            n_actions = X.shape[-2]
             simulation_dict["Actions"].append(n_actions)
-            simulation_dict["ActsName"].append("sqrt(N) Actions")
+            simulation_dict["ActsName"].append("BayesOpt")
 
             simulation_dict["TrueNoise"].append(truenoise.item())
             simulation_dict["LengthScale"].append(ls.tolist())
@@ -877,7 +879,7 @@ def BayesOpt(
     n_simulations = int(n_simulations)
     n_epochs = int(n_epochs)
 
-    simulation_dict = ELBO_sqrt_simulate(D, N_init, truenoise, n_simulations, n_epochs)
+    simulation_dict = ELBO_bayesopt_simulate(D, N_init, truenoise, n_simulations, n_epochs)
     sim_df = pd.DataFrame(simulation_dict)
 
     # Check for existing results file
