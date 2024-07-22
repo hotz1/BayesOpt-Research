@@ -860,7 +860,7 @@ def ELBO_SQRT(
 
     return None
 
-def BayesOpt( 
+def ELBO_BayesOpt( 
     N_init: Integer,
     n_simulations: Integer,
     n_epochs: Integer,
@@ -902,4 +902,4 @@ if __name__ == '__main__':
     # Expose the simulation functions to the CLI using fire.Fire
     fire.Fire({'ELBO_Fixed': ELBO_Fixed,
                'ELBO_SQRT': ELBO_SQRT,
-               'BayesOpt': BayesOpt})
+               'ELBO_BayesOpt': ELBO_BayesOpt})
