@@ -686,7 +686,7 @@ def ELBO_SQRT(
         curr_results = sim_df
     
     # Save file locally
-    sim_df.to_csv(result_filename, index = False)
+    curr_results.to_csv(result_filename, index = False)
 
     return None
 
