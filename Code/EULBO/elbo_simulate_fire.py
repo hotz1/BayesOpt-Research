@@ -674,12 +674,19 @@ def ELBO_SQRT(
 
     simulation_dict = ELBO_sqrt_simulate(D, N_init, truenoise, n_simulations, n_epochs)
     sim_df = pd.DataFrame(simulation_dict)
-        
-    # Count existing number of csv files
-    n_csvs = len(fnmatch.filter(oper.listdir('./Code/EULBO/Sim-Results/RawData/'), '*.csv'))
 
+    # Check for existing results file
+    result_filename = f"./Code/EULBO/Sim-Results/RawData/ELBO_SQRT_{n_epochs}E.csv"
+
+    if oper.path.exists(result_filename):
+        curr_results = pd.read_csv(result_filename)
+        sim_df["Simulation"] += max(curr_results["Simulation"])
+        curr_results = pd.concat(curr_results, sim_df)
+    else:
+        curr_results = sim_df
+    
     # Save file locally
-    sim_df.to_csv(f"./Code/EULBO/Sim-Results/RawData/ELBO_SQRT_Results_{n_csvs}.csv", index = False)
+    sim_df.to_csv(result_filename, index = False)
 
     return None
 
