@@ -1,13 +1,19 @@
 library(here)
 library(tidyverse)
 
-# Read data
-sims <- read_csv(here("Code/EULBO/Sim-Results/Combined", "500Epochs_All.csv"))
+# Read in data
+all_csvs <- list.files("Code/EULBO/Sim-Results/RawData/", 
+                       pattern = ".csv", full.names = T)
+csv_list <- list()
+for(i in 1:length(all_csvs)){
+  csv_list[[i]] <- read_csv(all_csvs[i])
+}
+
 
 # Make Simulation no. categorical
 sims <- sims %>%
   mutate(Simulation = as.factor(Simulation))
-
+  
 sim_summary <- sims %>%
   group_by(Epoch, ActsName) %>%
   summarize(y_mean = mean(obsBest), y_sd = sd(trueBest))
