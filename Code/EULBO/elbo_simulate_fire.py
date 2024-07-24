@@ -819,6 +819,7 @@ def ELBO_Fixed(
     
     # Save file locally
     curr_results.to_csv(result_filename, index = False)
+    print(f"Wrote {sim_df.shape[0]} rows to {result_filename}!")
 
     return None
 
@@ -857,6 +858,7 @@ def ELBO_SQRT(
     
     # Save file locally
     curr_results.to_csv(result_filename, index = False)
+    print(f"Wrote {sim_df.shape[0]} rows to {result_filename}!")
 
     return None
 
@@ -895,6 +897,7 @@ def ELBO_BayesOpt(
     
     # Save file locally
     curr_results.to_csv(result_filename, index = False)
+    print(f"Wrote {sim_df.shape[0]} rows to {result_filename}!")
 
     return None
 
