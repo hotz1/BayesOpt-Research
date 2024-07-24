@@ -350,7 +350,7 @@ def ELBO_fixed_simulate(
         simulation_dict["cpuTime"].append(np.nan)
         
         # for epoch in tqdm(range(n_epochs), leave = False):
-        for epoch in range(n_epochs):
+        for epoch in range(1, n_epochs + 1):
             epoch_st = time.process_time()
 
             # Initialize S, x_new, GP hyperparameters randomly
@@ -452,8 +452,12 @@ def ELBO_fixed_simulate(
 
             simulation_dict["cpuTime"].append(epoch_et - epoch_st)
 
-        # Print progress update
-        print(f"Completed {n_epochs} epochs for simulation {sim + 1}!")
+            # Print occasional progress update
+            if epoch % 50 == 0:
+                print(f"\tSimulation {sim + 1}: Completed epoch {epoch}")
+
+        # Print progress update after finishing a full simulation
+        print(f"Completed all {epoch} epochs for simulation {sim + 1}!\n")
 
     return simulation_dict
 
@@ -511,8 +515,7 @@ def ELBO_sqrt_simulate(
 
         simulation_dict["cpuTime"].append(np.nan)
         
-        # for epoch in tqdm(range(n_epochs), leave = False):
-        for epoch in range(n_epochs):
+        for epoch in range(1, n_epochs + 1):
             epoch_st = time.process_time()
 
             # Initialize S, x_new, GP hyperparameters randomly
@@ -616,8 +619,12 @@ def ELBO_sqrt_simulate(
 
             simulation_dict["cpuTime"].append(epoch_et - epoch_st)
 
-        # Print progress update
-        print(f"Completed {n_epochs} epochs for simulation {sim + 1}!")
+            # Print occasional progress update
+            if epoch % 50 == 0:
+                print(f"\tSimulation {sim + 1}: Completed epoch {epoch}")
+
+        # Print progress update after finishing a full simulation
+        print(f"Completed all {epoch} epochs for simulation {sim + 1}!\n")
 
     return simulation_dict
 
@@ -675,7 +682,7 @@ def ELBO_bayesopt_simulate(
 
         simulation_dict["cpuTime"].append(np.nan)
         
-        for epoch in range(n_epochs):
+        for epoch in range(1, n_epochs + 1):
             epoch_st = time.process_time()
 
             # Fixed action matrix (just identity matrix)
@@ -757,7 +764,7 @@ def ELBO_bayesopt_simulate(
             # Record info for the epoch
             simulation_dict["Method"].append("Separate")
             simulation_dict["Simulation"].append(sim + 1)
-            simulation_dict["Epoch"].append(epoch + 1)
+            simulation_dict["Epoch"].append(epoch)
             simulation_dict["N"].append(X.shape[-2])
 
             n_actions = X.shape[-2]
@@ -777,8 +784,12 @@ def ELBO_bayesopt_simulate(
 
             simulation_dict["cpuTime"].append(epoch_et - epoch_st)
 
-        # Print progress update
-        print(f"Completed {n_epochs} epochs for simulation {sim + 1}!")
+            # Print occasional progress update
+            if epoch % 50 == 0:
+                print(f"\tSimulation {sim + 1}: Completed epoch {epoch}")
+
+        # Print progress update after finishing a full simulation
+        print(f"Completed all {epoch} epochs for simulation {sim + 1}!\n")
 
     return simulation_dict
 
