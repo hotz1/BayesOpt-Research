@@ -1,5 +1,7 @@
 #!/bin/sh
 #SBATCH --output="/home/joeyhotz/scratch/BayesOpt-Research/slurm-logs/slurm-%j.out"
+
+module load cuda
 module load python/3.10
 source ~/envs/research/bin/activate
 
