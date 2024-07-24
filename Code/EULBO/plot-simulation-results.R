@@ -2,21 +2,33 @@ library(here)
 library(tidyverse)
 
 # Read in data
-all_csvs <- list.files("Code/EULBO/Sim-Results/RawData/", 
+all_csvs <- list.files(here("Code/EULBO/Sim-Results/RawData"), 
                        pattern = ".csv", full.names = T)
 csv_list <- list()
 for(i in 1:length(all_csvs)){
   csv_list[[i]] <- read_csv(all_csvs[i])
 }
 
+# Combine data
+all_sims <- bind_rows(csv_list)
 
 # Make Simulation no. categorical
-sims <- sims %>%
+all_sims <- all_sims %>%
   mutate(Simulation = as.factor(Simulation))
+
+# Check number of epochs for each thing
+all_sims %>% 
+  group_by(Simulation, ActsName) %>% 
+  summarize(Total = n(), 
+            Epochs = max(Epoch))
   
-sim_summary <- sims %>%
+
+# Summarize by type and by epoch
+epoch_summary <- all_sims %>%
   group_by(Epoch, ActsName) %>%
-  summarize(y_mean = mean(obsBest), y_sd = sd(trueBest))
+  summarize(y_mean = mean(trueBest), 
+            y_sd = sd(trueBest), 
+            Sims = n())
 
 # # Create plot
 # sim_summary %>% 
