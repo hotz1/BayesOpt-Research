@@ -348,32 +348,60 @@ def ELBO_fixed_simulate(
         simulation_dict["trueBest"].append(true_best)
 
         simulation_dict["cpuTime"].append(np.nan)
+
+        # Random x_new and action matrix (fixed values for now)
+        S_init = torch.randn(X.shape[-2], n_actions)
+        S_init_normed = normalize_cols(S_init)
+
+        # Initialize GP hyperparameters randomly
+        ls_raw = torch.randn(1, D)
+        os_raw = torch.randn(1, 1)
+        sigma_sq_raw = torch.randn(1, 1)
+
+        # Optimize GP hyperparameters (just once)
+        ls_opt = torch.nn.Parameter(ls_raw)
+        os_opt = torch.nn.Parameter(os_raw)
+        sigma_sq_opt = torch.nn.Parameter(sigma_sq_raw)
+
+        optimizer_hpars = torch.optim.Adam(params = [ls_opt, os_opt, sigma_sq_opt], lr = 0.005, maximize = True)
+        for _ in range(500):
+            ls = torch.nn.functional.softplus(ls_opt)
+            os = torch.nn.functional.softplus(os_opt)
+            sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
+
+            KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
+            STKS = S_normed.mT @ KXX @ S_normed
+            try:
+                STKS_chol = torch.linalg.cholesky(STKS)
+            except:
+                try:
+                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
+                except:
+                    break
+                        
+            gain_hpars = ELBO(S_init_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
+            gain_hpars.backward()
+            optimizer_hpars.step()
+            optimizer_hpars.zero_grad()
+                        
+        ls.detach_()
+        os.detach_()
+        sigma_sq.detach_()
         
-        # for epoch in tqdm(range(n_epochs), leave = False):
         for epoch in range(1, n_epochs + 1):
             epoch_st = time.process_time()
 
-            # Initialize S, x_new, GP hyperparameters randomly
+            # Initialize S (action matrix) and x_new randomly
             S_raw = torch.randn(X.shape[-2], n_actions)
-            ls_raw = torch.randn(1, D)
-            os_raw = torch.randn(1, 1)
-            sigma_sq_raw = torch.randn(1, 1)
             x_new_raw = torch.rand(1, D).logit()
             
-
             S_opt = torch.nn.Parameter(S_raw)
-            ls_opt = torch.nn.Parameter(ls_raw)
-            os_opt = torch.nn.Parameter(os_raw)
-            sigma_sq_opt = torch.nn.Parameter(sigma_sq_raw)
             x_new_opt = torch.nn.Parameter(x_new_raw)
 
-            # Optimize S and GP hyperparameters 
-            optimizer_S = torch.optim.Adam(params = [S_opt, ls_opt, os_opt, sigma_sq_opt], lr = 0.005, maximize = True)
+            # Optimize S (action matrix) 
+            optimizer_S = torch.optim.Adam(params = [S_opt], lr = 0.005, maximize = True)
             for _ in range(500):
                 S_normed = normalize_cols(S_opt)
-                ls = torch.nn.functional.softplus(ls_opt)
-                os = torch.nn.functional.softplus(os_opt)
-                sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
 
                 KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
                 STKS = S_normed.mT @ KXX @ S_normed
@@ -400,11 +428,8 @@ def ELBO_fixed_simulate(
                 except:
                     break 
             STKS_chol.detach_()
-            ls.detach_()
-            os.detach_()
-            sigma_sq.detach_()
 
-            optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.01, maximize = True)
+            optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.005, maximize = True)
             for _ in range(500):
                 # Ensure S, x are "valid"
                 x_normed = x_new_opt.sigmoid()  
@@ -421,14 +446,16 @@ def ELBO_fixed_simulate(
                 optimizer_x.zero_grad()
     
             # Update data  
-            x_new = x_new_opt.sigmoid()       
-            x_new.detach_()
-            # K_chol = update_chol_newdata(K_chol, X, x_new, ls, os, sigma_sq)
-            y_new = observe(hartmann_six, x_new, truenoise)
-            true_y_new = hartmann_six(x_new)
-            X = torch.cat([X, x_new], -2)
-            y = torch.cat([y, y_new], -1)
-            true_y = torch.cat([true_y, true_y_new], -1)
+            with torch.no_grad:
+                x_new = x_new_opt.sigmoid()       
+                x_new.detach_()
+            
+                y_new = observe(hartmann_six, x_new, truenoise)
+                true_y_new = hartmann_six(x_new)
+            
+                X = torch.cat([X, x_new], -2)
+                y = torch.cat([y, y_new], -1)
+                true_y = torch.cat([true_y, true_y_new], -1)
 
             epoch_et = time.process_time()
         
