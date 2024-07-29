@@ -370,14 +370,17 @@ def ELBO_fixed_simulate(
             sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
 
             KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
-            STKS = S_init_normed.mT @ KXX @ S_init_normed
-            try:
-                STKS_chol = torch.linalg.cholesky(STKS)
-            except:
+
+            # Compute S'KS and Cholesky of S'KS
+            with torch.no_grad():
+                STKS = S_init_normed.mT @ KXX @ S_init_normed
                 try:
-                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
+                    STKS_chol = torch.linalg.cholesky(STKS)
                 except:
-                    break
+                    try:
+                        STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
+                    except:
+                        break
                         
             gain_hpars = ELBO(S_init_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
             gain_hpars.backward()
@@ -406,6 +409,26 @@ def ELBO_fixed_simulate(
             for _ in range(500):
                 S_normed = normalize_cols(S_opt)
 
+                # Compute S'KS and Cholesky of S'KS
+                with torch.no_grad():
+                    STKS = S_normed.mT @ KXX @ S_normed
+                    try:
+                        STKS_chol = torch.linalg.cholesky(STKS)
+                    except:
+                        try:
+                            STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
+                        except:
+                            break   
+                        
+                gain_S = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
+                gain_S.backward()
+                optimizer_S.step()
+                optimizer_S.zero_grad()
+                
+            S_normed = normalize_cols(S_opt).detach() 
+            
+            # Compute S'KS and Cholesky of S'KS
+            with torch.no_grad():  
                 STKS = S_normed.mT @ KXX @ S_normed
                 try:
                     STKS_chol = torch.linalg.cholesky(STKS)
@@ -413,23 +436,8 @@ def ELBO_fixed_simulate(
                     try:
                         STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except:
-                        break   
-                        
-                gain_S = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
-                gain_S.backward()
-                optimizer_S.step()
-                optimizer_S.zero_grad()
-                
-            S_normed = normalize_cols(S_opt).detach()          
-            STKS = S_normed.mT @ KXX @ S_normed
-            try:
-                STKS_chol = torch.linalg.cholesky(STKS)
-            except:
-                try:
-                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                except:
-                    break
-            STKS_chol.detach_()
+                        break
+            # STKS_chol.detach_()
 
             optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.005, maximize = True)
             for _ in range(500):
@@ -450,7 +458,7 @@ def ELBO_fixed_simulate(
             with torch.no_grad():
                 x_new = x_new_opt.sigmoid()       
             
-            x_new.detach_()
+            # x_new.detach_()
             
             y_new = observe(hartmann_six, x_new, truenoise)
             true_y_new = hartmann_six(x_new)
