@@ -310,7 +310,7 @@ def ELBO_fixed_simulate(
         "Method": [], 
         "Simulation": [], 
         "Epoch": [], 
-        "N":[],
+        "N": [],
         "Actions": [],
         "ActsName": [],
         "TrueNoise": [],
@@ -391,6 +391,9 @@ def ELBO_fixed_simulate(
         for epoch in range(1, n_epochs + 1):
             epoch_st = time.process_time()
 
+            # Compute Matern kernel
+            KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
+
             # Initialize S (action matrix) and x_new randomly
             S_raw = torch.randn(X.shape[-2], n_actions)
             x_new_raw = torch.rand(1, D).logit()
@@ -403,7 +406,6 @@ def ELBO_fixed_simulate(
             for _ in range(500):
                 S_normed = normalize_cols(S_opt)
 
-                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
                 STKS = S_normed.mT @ KXX @ S_normed
                 try:
                     STKS_chol = torch.linalg.cholesky(STKS)
@@ -426,19 +428,18 @@ def ELBO_fixed_simulate(
                 try:
                     STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                 except:
-                    break 
+                    break
             STKS_chol.detach_()
 
             optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.005, maximize = True)
             for _ in range(500):
-                # Ensure S, x are "valid"
                 x_normed = x_new_opt.sigmoid()  
                 
                 # Compute the variational inference distribution q_S(f) = f|(S'D) at x_normed
                 VI_mean, VI_var = compute_posterior_mean_and_variance_action(x_normed, X, y, S_normed, STKS_chol, ls, os)
                 VI_sd = VI_var.clamp(min = 1.0e-10).sqrt()
 
-                # Explicitly compute log(expected improvement)
+                # Compute expected improvement
                 z_score = (VI_mean - y_best).div(VI_sd)
                 gain_x = VI_sd * (STD_normal.log_prob(z_score).exp() + z_score * STD_normal.cdf(z_score))
                 gain_x.backward()
@@ -463,7 +464,7 @@ def ELBO_fixed_simulate(
             # Record info for the epoch
             simulation_dict["Method"].append("Separate")
             simulation_dict["Simulation"].append(sim + 1)
-            simulation_dict["Epoch"].append(epoch + 1)
+            simulation_dict["Epoch"].append(epoch)
             simulation_dict["N"].append(X.shape[-2])
             simulation_dict["Actions"].append(n_actions)
             simulation_dict["ActsName"].append(str(n_actions) + " Actions")
