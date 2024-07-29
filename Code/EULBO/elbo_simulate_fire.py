@@ -370,7 +370,7 @@ def ELBO_fixed_simulate(
             sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
 
             KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
-            STKS = S_normed.mT @ KXX @ S_normed
+            STKS = S_init_normed.mT @ KXX @ S_init_normed
             try:
                 STKS_chol = torch.linalg.cholesky(STKS)
             except:
@@ -446,16 +446,17 @@ def ELBO_fixed_simulate(
                 optimizer_x.zero_grad()
     
             # Update data  
-            with torch.no_grad:
+            with torch.no_grad():
                 x_new = x_new_opt.sigmoid()       
-                x_new.detach_()
             
-                y_new = observe(hartmann_six, x_new, truenoise)
-                true_y_new = hartmann_six(x_new)
+            x_new.detach_()
             
-                X = torch.cat([X, x_new], -2)
-                y = torch.cat([y, y_new], -1)
-                true_y = torch.cat([true_y, true_y_new], -1)
+            y_new = observe(hartmann_six, x_new, truenoise)
+            true_y_new = hartmann_six(x_new)
+            
+            X = torch.cat([X, x_new], -2)
+            y = torch.cat([y, y_new], -1)
+            true_y = torch.cat([true_y, true_y_new], -1)
 
             epoch_et = time.process_time()
         
