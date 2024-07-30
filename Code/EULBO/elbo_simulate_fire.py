@@ -407,10 +407,11 @@ def ELBO_fixed_simulate(
             # Optimize S (action matrix) 
             optimizer_S = torch.optim.Adam(params = [S_opt], lr = 0.005, maximize = True)
             for _ in range(500):
-                S_normed = normalize_cols(S_opt)
-
-                # Compute S'KS and Cholesky of S'KS
                 with torch.no_grad():
+                    # Normalize columns of S
+                    S_normed = normalize_cols(S_opt)
+
+                    # Compute S'KS and Cholesky of S'KS
                     STKS = S_normed.mT @ KXX @ S_normed
                     try:
                         STKS_chol = torch.linalg.cholesky(STKS)
@@ -606,11 +607,12 @@ def ELBO_sqrt_simulate(
 
             # Optimize S (action matrix)
             optimizer_S = torch.optim.Adam(params = [S_opt], lr = 0.005, maximize = True)
-            for _ in range(500):
-                S_normed = normalize_cols(S_opt)
-                
-                # Compute S'KS and Cholesky of S'KS
+            for _ in range(500):                
                 with torch.no_grad():
+                    # Normalize columns of S
+                    S_normed = normalize_cols(S_opt)
+
+                    # Compute S'KS and Cholesky of S'KS
                     STKS = S_normed.mT @ KXX @ S_normed
                     try:
                         STKS_chol = torch.linalg.cholesky(STKS)
