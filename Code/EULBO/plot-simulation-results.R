@@ -46,7 +46,7 @@ epoch_summary %>%
   theme(plot.title = element_text(hjust = 0.5), 
         plot.subtitle = element_text(hjust = 0.5))
 
-ggsave(here("Code/EULBO/Sim-Results/Plots/TrueBest_Comparison.png"), device = "png",
+ggsave(here("Code/EULBO/Sim-Results/Plots/TrueBest_Comparison_500E.png"), device = "png",
        width = 12, height = 8, units = "in")
 
 # Create plot of trueBest
@@ -64,5 +64,5 @@ epoch_summary %>%
   theme(plot.title = element_text(hjust = 0.5), 
         plot.subtitle = element_text(hjust = 0.5))
 
-ggsave(here("Code/EULBO/Sim-Results/Plots/TimeTaken_Comparison.png"), device = "png",
+ggsave(here("Code/EULBO/Sim-Results/Plots/TimeTaken_Comparison_500E.png"), device = "png",
        width = 12, height = 8, units = "in")
