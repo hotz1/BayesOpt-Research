@@ -372,15 +372,14 @@ def ELBO_fixed_simulate(
             KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
 
             # Compute S'KS and Cholesky of S'KS
-            with torch.no_grad():
-                STKS = S_init_normed.mT @ KXX @ S_init_normed
+            STKS = S_init_normed.mT @ KXX @ S_init_normed
+            try:
+                STKS_chol = torch.linalg.cholesky(STKS)
+            except:
                 try:
-                    STKS_chol = torch.linalg.cholesky(STKS)
+                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                 except:
-                    try:
-                        STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                    except:
-                        break
+                    break
                         
             gain_hpars = ELBO(S_init_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
             gain_hpars.backward()
@@ -411,16 +410,16 @@ def ELBO_fixed_simulate(
                 # Normalize columns of S
                 S_normed = normalize_cols(S_opt)
 
-                with torch.no_grad():
-                    # Compute S'KS and Cholesky of S'KS
-                    STKS = S_normed.mT @ KXX @ S_normed
+                
+                # Compute S'KS and Cholesky of S'KS
+                STKS = S_normed.mT @ KXX @ S_normed
+                try:
+                    STKS_chol = torch.linalg.cholesky(STKS)
+                except:
                     try:
-                        STKS_chol = torch.linalg.cholesky(STKS)
+                        STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except:
-                        try:
-                            STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                        except:
-                            break   
+                        break   
                         
                 gain_S = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
                 gain_S.backward()
@@ -574,15 +573,14 @@ def ELBO_sqrt_simulate(
             KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
 
             # Compute S'KS and Cholesky of S'KS
-            with torch.no_grad():
-                STKS = S_init_normed.mT @ KXX @ S_init_normed
+            STKS = S_init_normed.mT @ KXX @ S_init_normed
+            try:
+                STKS_chol = torch.linalg.cholesky(STKS)
+            except:
                 try:
-                    STKS_chol = torch.linalg.cholesky(STKS)
+                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                 except:
-                    try:
-                        STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                    except:
-                        break
+                    break
                         
             gain_hpars = ELBO(S_init_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
             gain_hpars.backward()
@@ -612,16 +610,15 @@ def ELBO_sqrt_simulate(
                 # Normalize columns of S
                 S_normed = normalize_cols(S_opt)
 
-                with torch.no_grad():
-                    # Compute S'KS and Cholesky of S'KS
-                    STKS = S_normed.mT @ KXX @ S_normed
+                # Compute S'KS and Cholesky of S'KS
+                STKS = S_normed.mT @ KXX @ S_normed
+                try:
+                    STKS_chol = torch.linalg.cholesky(STKS)
+                except:
                     try:
-                        STKS_chol = torch.linalg.cholesky(STKS)
+                        STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except:
-                        try:
-                            STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                        except:
-                            break   
+                        break   
                         
                 gain_S = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
                 gain_S.backward()
@@ -778,15 +775,14 @@ def ELBO_bayesopt_simulate(
             KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
 
             # Compute S'KS and Cholesky of S'KS
-            with torch.no_grad():
-                STKS = S_init_normed.mT @ KXX @ S_init_normed
+            STKS = S_init_normed.mT @ KXX @ S_init_normed
+            try:
+                STKS_chol = torch.linalg.cholesky(STKS)
+            except:
                 try:
-                    STKS_chol = torch.linalg.cholesky(STKS)
+                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                 except:
-                    try:
-                        STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                    except:
-                        break
+                    break
                         
             gain_hpars = ELBO(S_init_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
             gain_hpars.backward()
