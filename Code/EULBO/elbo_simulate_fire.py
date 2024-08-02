@@ -23,7 +23,7 @@ import time
 import fire
 
 # Set DTYPE and DEVICE variables for torch tensors
-# DTYPE = torch.float32
+DTYPE = torch.float32
 # DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 if torch.cuda.is_available():
     torch.set_default_device("cuda")
