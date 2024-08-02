@@ -5,7 +5,7 @@ cd ~/scratch/BayesOpt-Research
 JOB_SCRIPT="Code/EULBO/shells/run_elbo_fixed_sims.sh"
 
 # Submit the first job
-PREV_JOB_ID=$(sbatch --export=ALL --dependency=after:$PREV_JOB_ID+$DELAY "$JOB_SCRIPT" | awk '{print $4}')
+PREV_JOB_ID=$(sbatch --export=ALL "$JOB_SCRIPT" | awk '{print $4}')
 echo "Submitted job 1 with Job ID: $PREV_JOB_ID"
 
 # Loop to submit the remaining jobs with dependencies
