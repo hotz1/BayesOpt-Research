@@ -221,7 +221,7 @@ def hartmann_six(X: Float[Tensor, "N 6"]) -> Float[Tensor, "N"]:
 def observe(
     func: Callable[[Float[Tensor, "N D"]], Float[Tensor, "N"]],
     X: Float[Tensor, "N D"], 
-    sigma_sq: Float = 1e-2,
+    sigma_sq: Float = 0,
 ) -> Float[Tensor, "N"]:
     r"""
     A "wrapper" to return y = func(X) + noise.
@@ -233,7 +233,6 @@ def observe(
     
     true_obs = func(X)
     return true_obs + torch.randn_like(true_obs).mul(math.sqrt(sigma_sq))
-    # return true_obs
 
 def ELBO(
     S: Float[Tensor, "N T"],
