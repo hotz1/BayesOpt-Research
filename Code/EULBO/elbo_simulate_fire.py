@@ -23,10 +23,13 @@ import time
 import fire
 
 # Set DTYPE and DEVICE variables for torch tensors
-DTYPE = torch.float32
-DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+# DTYPE = torch.float32
+# DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 if torch.cuda.is_available():
     torch.set_default_device("cuda")
+else:
+    torch.set_default_device("cpu")
+
 
 def mu(X: Float[Tensor, "N D"]) -> Float[Tensor, "N"]:
     r"""
@@ -326,7 +329,7 @@ def ELBO_fixed_simulate(
     for sim in range(n_simulations):
 
         # Simulate dataset 
-        X = torch.rand(N_init, D, device=DEVICE)
+        X = torch.rand(N_init, D)
         y = observe(hartmann_six, X, truenoise)
         true_y = hartmann_six(X)
 
@@ -348,18 +351,18 @@ def ELBO_fixed_simulate(
         simulation_dict["cpuTime"].append(np.nan)
 
         # Initialize random action matrix (off by one to add one row per epoch)
-        S_raw = torch.randn(X.shape[-2] - 1, n_actions, device=X.device)
+        S_raw = torch.randn(X.shape[-2] - 1, n_actions)
 
         # Initialize GP hyperparameters (fixed initialization)
-        ls_raw = torch.zeros(1, D, device=X.device)
-        os_raw = torch.zeros(1, 1, device=X.device)
-        sigma_sq_raw = torch.zeros(1, 1, device=X.device)
+        ls_raw = torch.zeros(1, D)
+        os_raw = torch.zeros(1, 1)
+        sigma_sq_raw = torch.zeros(1, 1)
         
         for epoch in range(1, n_epochs + 1):
             epoch_st = time.process_time()
 
             # Add new row to S at start of each epoch
-            S_new = torch.randn(1, n_actions, device=X.device)
+            S_new = torch.randn(1, n_actions)
             S_raw = torch.cat([S_raw, S_new], -2)
             S_opt = torch.nn.Parameter(S_raw)
 
@@ -378,7 +381,7 @@ def ELBO_fixed_simulate(
                 sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
 
                 # Compute Matern kernel 
-                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2], device=X.device) # epsilon = 1e-4
+                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
 
                 # Compute S'KS and Cholesky of S'KS
                 STKS = S_normed.mT @ KXX @ S_normed
@@ -403,7 +406,7 @@ def ELBO_fixed_simulate(
 
             with torch.no_grad():
                 # Compute Matern kernel
-                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2], device=X.device) # epsilon = 1e-4
+                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
 
                 STKS = S_normed.mT @ KXX @ S_normed
                 try:
@@ -415,7 +418,7 @@ def ELBO_fixed_simulate(
                         break
 
             # Choose next x value (data acquisition)
-            x_new_raw = torch.rand(1, D, device=X.device).logit()
+            x_new_raw = torch.rand(1, D).logit()
             x_new_opt = torch.nn.Parameter(x_new_raw)
             optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.005, maximize = True)
             for _ in range(500):
