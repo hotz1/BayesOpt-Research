@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import torch
-STD_normal = torch.distributions.normal.Normal(0, 1) # Standard Normal
+STD_normal = torch.distributions.normal.Normal(0, 1) # Standard Normal distribution
 
 from typing import Optional, Tuple
 # Type hints are strictly optional, but personally I find that they make code more reasonable
@@ -324,7 +324,7 @@ def ELBO_fixed_simulate(
     for sim in range(n_simulations):
 
         # Simulate dataset 
-        X = torch.rand(N_init, D)
+        X = torch.rand(N_init, D, device=DEVICE)
         y = observe(hartmann_six, X, truenoise)
         true_y = hartmann_six(X)
 
@@ -339,77 +339,45 @@ def ELBO_fixed_simulate(
         simulation_dict["LengthScale"].append(np.nan)
         simulation_dict["OutputScale"].append(np.nan)
         simulation_dict["SigmaSq"].append(np.nan)
-        
         y_best = y.max().item()
         simulation_dict["obsBest"].append(y_best)
-    
         true_best = true_y[y.argmax()].item()
         simulation_dict["trueBest"].append(true_best)
-
         simulation_dict["cpuTime"].append(np.nan)
 
-        # Random action matrix (fixed values for now)
-        S_init = torch.randn(X.shape[-2], n_actions)
-        S_init_normed = normalize_cols(S_init)
+        # Initialize random action matrix (off by one to add one row per epoch)
+        S_raw = torch.randn(X.shape[-2] - 1, n_actions, device=X.device)
 
-        # Initialize GP hyperparameters randomly
-        ls_raw = torch.randn(1, D)
-        os_raw = torch.randn(1, 1)
-        sigma_sq_raw = torch.randn(1, 1)
-
-        # Optimize GP hyperparameters (just once)
-        ls_opt = torch.nn.Parameter(ls_raw)
-        os_opt = torch.nn.Parameter(os_raw)
-        sigma_sq_opt = torch.nn.Parameter(sigma_sq_raw)
-
-        optimizer_hpars = torch.optim.Adam(params = [ls_opt, os_opt, sigma_sq_opt], lr = 0.005, maximize = True)
-        for _ in range(500):
-            ls = torch.nn.functional.softplus(ls_opt)
-            os = torch.nn.functional.softplus(os_opt)
-            sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
-
-            KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
-
-            # Compute S'KS and Cholesky of S'KS
-            STKS = S_init_normed.mT @ KXX @ S_init_normed
-            try:
-                STKS_chol = torch.linalg.cholesky(STKS)
-            except:
-                try:
-                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                except:
-                    break
-                        
-            gain_hpars = ELBO(S_init_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
-            gain_hpars.backward()
-            optimizer_hpars.step()
-            optimizer_hpars.zero_grad()
-                        
-        ls.detach_()
-        os.detach_()
-        sigma_sq.detach_()
+        # Initialize GP hyperparameters (fixed initialization)
+        ls_raw = torch.zeros(1, D, device=X.device)
+        os_raw = torch.zeros(1, 1, device=X.device)
+        sigma_sq_raw = torch.zeros(1, 1, device=X.device)
         
         for epoch in range(1, n_epochs + 1):
             epoch_st = time.process_time()
 
-            # Compute Matern kernel
-            KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
-
-            # Initialize S (action matrix) and x_new randomly
-            S_raw = torch.randn(X.shape[-2], n_actions)
-            x_new_raw = torch.rand(1, D).logit()
-            
+            # Add new row to S at start of each epoch
+            S_new = torch.randn(1, n_actions, device=X.device)
+            S_raw = torch.cat([S_raw, S_new], -2)
             S_opt = torch.nn.Parameter(S_raw)
-            x_new_opt = torch.nn.Parameter(x_new_raw)
 
-            # Optimize S (action matrix) 
-            optimizer_S = torch.optim.Adam(params = [S_opt], lr = 0.005, maximize = True)
-            for _ in range(500):
-                
-                # Normalize columns of S
+
+            ls_opt = torch.nn.Parameter(ls_raw)
+            os_opt = torch.nn.Parameter(os_raw)
+            sigma_sq_opt = torch.nn.Parameter(sigma_sq_raw)
+
+            # Optimize S and GP hyperparameters
+            optimizer_SHP = torch.optim.Adam(params = [S_opt, ls_opt, os_opt, sigma_sq_opt], lr = 0.005, maximize = True)
+            for _ in range(1000):
+                # Transform raw values
                 S_normed = normalize_cols(S_opt)
+                ls = torch.nn.functional.softplus(ls_opt)
+                os = torch.nn.functional.softplus(os_opt)
+                sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
 
-                
+                # Compute Matern kernel 
+                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2], device=X.device) # epsilon = 1e-4
+
                 # Compute S'KS and Cholesky of S'KS
                 STKS = S_normed.mT @ KXX @ S_normed
                 try:
@@ -418,17 +386,23 @@ def ELBO_fixed_simulate(
                     try:
                         STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except:
-                        break   
-                        
-                gain_S = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
-                gain_S.backward()
-                optimizer_S.step()
-                optimizer_S.zero_grad()
-                
-            S_normed = normalize_cols(S_opt).detach() 
-            
+                        break
+                            
+                gain_SHP = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
+                gain_SHP.backward()
+                optimizer_SHP.step()
+                optimizer_SHP.zero_grad()
+         
             # Compute S'KS and Cholesky of S'KS
-            with torch.no_grad():  
+            S_normed = normalize_cols(S_opt).detach()
+            ls = torch.nn.functional.softplus(ls_opt).detach()
+            os = torch.nn.functional.softplus(os_opt).detach()
+            sigma_sq = torch.nn.functional.softplus(sigma_sq_opt).detach()   
+
+            with torch.no_grad():
+                # Compute Matern kernel
+                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2], device=X.device) # epsilon = 1e-4
+
                 STKS = S_normed.mT @ KXX @ S_normed
                 try:
                     STKS_chol = torch.linalg.cholesky(STKS)
@@ -438,15 +412,19 @@ def ELBO_fixed_simulate(
                     except:
                         break
 
+            # Choose next x value (data acquisition)
+            x_new_raw = torch.rand(1, D, device=X.device).logit()
+            x_new_opt = torch.nn.Parameter(x_new_raw)
             optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.005, maximize = True)
             for _ in range(500):
+                # Transform x value to be a valid input
                 x_normed = x_new_opt.sigmoid()  
                 
                 # Compute the variational inference distribution q_S(f) = f|(S'D) at x_normed
                 VI_mean, VI_var = compute_posterior_mean_and_variance_action(x_normed, X, y, S_normed, STKS_chol, ls, os)
                 VI_sd = VI_var.clamp(min = 1.0e-10).sqrt()
 
-                # Compute expected improvement
+                # Compute exact expected improvement
                 z_score = (VI_mean - y_best).div(VI_sd)
                 gain_x = VI_sd * (STD_normal.log_prob(z_score).exp() + z_score * STD_normal.cdf(z_score))
                 gain_x.backward()
