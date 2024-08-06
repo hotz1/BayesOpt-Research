@@ -882,15 +882,20 @@ def ELBO_Fixed(
     result_filename = f"./Code/EULBO/Sim-Results/RawData/ELBO_Fixed{n_actions}_{n_epochs}E.csv"
 
     # If file exists, append to file, otherwise create new file
-    if oper.path.exists(result_filename):
+    # if oper.path.exists(result_filename):
+    #     curr_results = pd.read_csv(result_filename)
+    #     sim_df["Simulation"] += max(curr_results["Simulation"])
+    #     curr_results = pd.concat([curr_results, sim_df], axis = 0, ignore_index = True)
+    # else:
+    #     curr_results = sim_df
+
+    # If file exists, change Simulation column accordingly
+    if oper.path.isfile(result_filename):
         curr_results = pd.read_csv(result_filename)
         sim_df["Simulation"] += max(curr_results["Simulation"])
-        curr_results = pd.concat([curr_results, sim_df], axis = 0, ignore_index = True)
-    else:
-        curr_results = sim_df
     
     # Save file locally
-    curr_results.to_csv(result_filename, index = False)
+    sim_df.to_csv(result_filename, mode = 'a', index = not oper.path.isfile(result_filename))
     print(f"Wrote {sim_df.shape[0]} rows to {result_filename}!")
 
     return None
