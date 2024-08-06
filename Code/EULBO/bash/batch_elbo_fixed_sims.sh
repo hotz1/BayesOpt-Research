@@ -1,7 +1,10 @@
 #!/bin/bash
 #SBATCH --output="/home/joeyhotz/scratch/BayesOpt-Research/slurm-logs/slurm-%j.out"
 
-# Script to run one single job 
+module load cuda
+module load python/3.10
+
+# Script to run the desired job 
 cd ~/scratch/BayesOpt-Research
 JOB_SCRIPT="Code/EULBO/bash/run_elbo_fixed_sims.sh"
 
