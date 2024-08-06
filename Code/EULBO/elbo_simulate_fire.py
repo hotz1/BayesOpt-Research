@@ -362,10 +362,9 @@ def ELBO_fixed_simulate(
             epoch_st = time.process_time()
 
             # Add new row to S at start of each epoch
-            S_new = torch.randn(1, n_actions)
-            S_raw = torch.cat([S_raw, S_new], -2)
+            S_new_row = torch.randn(1, n_actions)
+            S_raw = torch.cat([S_raw, S_new_row], -2)
             S_opt = torch.nn.Parameter(S_raw)
-
 
             ls_opt = torch.nn.Parameter(ls_raw)
             os_opt = torch.nn.Parameter(os_raw)
@@ -511,83 +510,56 @@ def ELBO_sqrt_simulate(
         simulation_dict["Simulation"].append(sim + 1)
         simulation_dict["Epoch"].append(0)
         simulation_dict["N"].append(X.shape[-2])
-
         n_actions = math.floor(math.sqrt(X.shape[-2]))
         simulation_dict["Actions"].append(n_actions)
         simulation_dict["ActsName"].append("sqrt(N) Actions")
-
         simulation_dict["TrueNoise"].append(truenoise.item())
         simulation_dict["LengthScale"].append(np.nan)
         simulation_dict["OutputScale"].append(np.nan)
         simulation_dict["SigmaSq"].append(np.nan)
-        
         y_best = y.max().item()
         simulation_dict["obsBest"].append(y_best)
-    
         true_best = true_y[y.argmax()].item()
         simulation_dict["trueBest"].append(true_best)
-
         simulation_dict["cpuTime"].append(np.nan)
 
-        # Random x_new and action matrix (fixed values for now)
-        S_init = torch.randn(X.shape[-2], n_actions)
-        S_init_normed = normalize_cols(S_init)
+        # Initialize random action matrix (off by one to add one row per epoch)
+        S_raw = torch.randn(X.shape[-2] - 1, n_actions)
 
-        # Initialize GP hyperparameters randomly
-        ls_raw = torch.randn(1, D)
-        os_raw = torch.randn(1, 1)
-        sigma_sq_raw = torch.randn(1, 1)
-
-        # Optimize GP hyperparameters (just once)
-        ls_opt = torch.nn.Parameter(ls_raw)
-        os_opt = torch.nn.Parameter(os_raw)
-        sigma_sq_opt = torch.nn.Parameter(sigma_sq_raw)
-
-        optimizer_hpars = torch.optim.Adam(params = [ls_opt, os_opt, sigma_sq_opt], lr = 0.005, maximize = True)
-        for _ in range(500):
-            ls = torch.nn.functional.softplus(ls_opt)
-            os = torch.nn.functional.softplus(os_opt)
-            sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
-
-            KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
-
-            # Compute S'KS and Cholesky of S'KS
-            STKS = S_init_normed.mT @ KXX @ S_init_normed
-            try:
-                STKS_chol = torch.linalg.cholesky(STKS)
-            except:
-                try:
-                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                except:
-                    break
-                        
-            gain_hpars = ELBO(S_init_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
-            gain_hpars.backward()
-            optimizer_hpars.step()
-            optimizer_hpars.zero_grad()
-                        
-        ls.detach_()
-        os.detach_()
-        sigma_sq.detach_()
+        # Initialize GP hyperparameters (fixed initialization)
+        ls_raw = torch.zeros(1, D)
+        os_raw = torch.zeros(1, 1)
+        sigma_sq_raw = torch.zeros(1, 1)
         
         for epoch in range(1, n_epochs + 1):
             epoch_st = time.process_time()
 
-            # Compute Matern kernel
-            KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
+            # Add new row to S at start of each epoch
+            S_new_row = torch.randn(1, n_actions)
+            S_raw = torch.cat([S_raw, S_new_row], -2)
 
-            # Initialize S (action matrix) and x_new randomly
-            S_raw = torch.randn(X.shape[-2], n_actions)
-            x_new_raw = torch.rand(1, D).logit()
-            
+            # Add new column to S (if needed)
+            if math.floor(math.sqrt(X.shape[-2])) > n_actions:
+                S_new_col = torch.randn(S_raw.shape[-2], 1)
+                S_raw = torch.cat([S_raw, S_new_col], -1)
+
             S_opt = torch.nn.Parameter(S_raw)
-            x_new_opt = torch.nn.Parameter(x_new_raw)
 
-            # Optimize S (action matrix)
-            optimizer_S = torch.optim.Adam(params = [S_opt], lr = 0.005, maximize = True)
-            for _ in range(500):  
-                # Normalize columns of S
+            ls_opt = torch.nn.Parameter(ls_raw)
+            os_opt = torch.nn.Parameter(os_raw)
+            sigma_sq_opt = torch.nn.Parameter(sigma_sq_raw)
+
+            # Optimize S and GP hyperparameters
+            optimizer_SHP = torch.optim.Adam(params = [S_opt, ls_opt, os_opt, sigma_sq_opt], lr = 0.005, maximize = True)
+            for _ in range(1000):
+                # Transform raw values
                 S_normed = normalize_cols(S_opt)
+                ls = torch.nn.functional.softplus(ls_opt)
+                os = torch.nn.functional.softplus(os_opt)
+                sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
+
+                # Compute Matern kernel 
+                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
 
                 # Compute S'KS and Cholesky of S'KS
                 STKS = S_normed.mT @ KXX @ S_normed
@@ -597,17 +569,23 @@ def ELBO_sqrt_simulate(
                     try:
                         STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except:
-                        break   
-                        
-                gain_S = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
-                gain_S.backward()
-                optimizer_S.step()
-                optimizer_S.zero_grad()
-                
-            S_normed = normalize_cols(S_opt).detach()
-            
+                        break
+                            
+                gain_SHP = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
+                gain_SHP.backward()
+                optimizer_SHP.step()
+                optimizer_SHP.zero_grad()
+         
             # Compute S'KS and Cholesky of S'KS
-            with torch.no_grad():  
+            S_normed = normalize_cols(S_opt).detach()
+            ls = torch.nn.functional.softplus(ls_opt).detach()
+            os = torch.nn.functional.softplus(os_opt).detach()
+            sigma_sq = torch.nn.functional.softplus(sigma_sq_opt).detach()
+
+            with torch.no_grad():
+                # Compute Matern kernel
+                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
+
                 STKS = S_normed.mT @ KXX @ S_normed
                 try:
                     STKS_chol = torch.linalg.cholesky(STKS)
@@ -615,17 +593,21 @@ def ELBO_sqrt_simulate(
                     try:
                         STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except:
-                        break          
+                        break     
 
+            # Choose next x value (data acquisition)
+            x_new_raw = torch.rand(1, D).logit()
+            x_new_opt = torch.nn.Parameter(x_new_raw)
             optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.005, maximize = True)
             for _ in range(500):
+                # Transform x value to be a valid input
                 x_normed = x_new_opt.sigmoid()  
                 
                 # Compute the variational inference distribution q_S(f) = f|(S'D) at x_normed
                 VI_mean, VI_var = compute_posterior_mean_and_variance_action(x_normed, X, y, S_normed, STKS_chol, ls, os)
                 VI_sd = VI_var.clamp(min = 1.0e-10).sqrt()
 
-                # Explicitly compute log(expected improvement)
+                # Compute exact expected improvement
                 z_score = (VI_mean - y_best).div(VI_sd)
                 gain_x = VI_sd * (STD_normal.log_prob(z_score).exp() + z_score * STD_normal.cdf(z_score))
                 gain_x.backward()
@@ -650,11 +632,10 @@ def ELBO_sqrt_simulate(
             simulation_dict["Simulation"].append(sim + 1)
             simulation_dict["Epoch"].append(epoch)
             simulation_dict["N"].append(X.shape[-2])
-
             n_actions = math.floor(math.sqrt(X.shape[-2]))
-            simulation_dict["Actions"].append(n_actions)
+            # simulation_dict["Actions"].append(n_actions)
+            simulation_dict["Actions"].append(str(n_actions) + "|" + str(S_opt.shape[-1]))
             simulation_dict["ActsName"].append("sqrt(N) Actions")
-
             simulation_dict["TrueNoise"].append(truenoise.item())
             simulation_dict["LengthScale"].append(ls.tolist())
             simulation_dict["OutputScale"].append(os.item())
@@ -910,22 +891,21 @@ def ELBO_SQRT(
     n_simulations = int(n_simulations)
     n_epochs = int(n_epochs)
 
+    # Run simulations and convert the returned dictionary to a DataFrame
     simulation_dict = ELBO_sqrt_simulate(D, N_init, truenoise, n_simulations, n_epochs)
     sim_df = pd.DataFrame(simulation_dict)
 
     # Check for existing results file
     result_filename = f"./Code/EULBO/Sim-Results/RawData/ELBO_SQRT_{n_epochs}E.csv"
 
-    # If file exists, append to file, otherwise create new file
-    if oper.path.exists(result_filename):
+    # If file exists, change Simulation column accordingly
+    if oper.path.isfile(result_filename):
         curr_results = pd.read_csv(result_filename)
         sim_df["Simulation"] += max(curr_results["Simulation"])
-        curr_results = pd.concat([curr_results, sim_df], axis = 0, ignore_index = True)
-    else:
-        curr_results = sim_df
     
     # Save file locally
-    curr_results.to_csv(result_filename, index = False)
+    sim_df.to_csv(result_filename, mode = 'a', index = False,
+                  header = not oper.path.isfile(result_filename))
     print(f"Wrote {sim_df.shape[0]} rows to {result_filename}!")
 
     return None
