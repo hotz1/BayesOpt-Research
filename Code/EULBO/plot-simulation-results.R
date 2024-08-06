@@ -20,7 +20,8 @@ all_sims <- all_sims %>%
 all_sims <- all_sims %>% 
   group_by(Simulation, ActsName) %>% 
   mutate(Total = n()) %>%
-  filter(Total == 501)
+  filter(Total == 501) %>%
+  select(-Total)
   
 
 # Summarize by type and by epoch
