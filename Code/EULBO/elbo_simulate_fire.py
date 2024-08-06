@@ -460,13 +460,10 @@ def ELBO_fixed_simulate(
             simulation_dict["LengthScale"].append(ls.tolist())
             simulation_dict["OutputScale"].append(os.item())
             simulation_dict["SigmaSq"].append(sigma_sq.item())
-        
             y_best = y.max().item()
-            simulation_dict["obsBest"].append(y_best)
-    
+            simulation_dict["obsBest"].append(y_best)    
             true_best = true_y[y.argmax()].item()
             simulation_dict["trueBest"].append(true_best)
-
             simulation_dict["cpuTime"].append(epoch_et - epoch_st)
 
             # Print occasional progress update
