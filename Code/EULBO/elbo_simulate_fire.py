@@ -875,19 +875,12 @@ def ELBO_Fixed(
     n_simulations = int(n_simulations)
     n_epochs = int(n_epochs)
 
+    # Run simulations and convert the returned dictionary to a DataFrame
     simulation_dict = ELBO_fixed_simulate(D, N_init, n_actions, truenoise, n_simulations, n_epochs)
     sim_df = pd.DataFrame(simulation_dict)
         
     # Check for existing results file
     result_filename = f"./Code/EULBO/Sim-Results/RawData/ELBO_Fixed{n_actions}_{n_epochs}E.csv"
-
-    # If file exists, append to file, otherwise create new file
-    # if oper.path.exists(result_filename):
-    #     curr_results = pd.read_csv(result_filename)
-    #     sim_df["Simulation"] += max(curr_results["Simulation"])
-    #     curr_results = pd.concat([curr_results, sim_df], axis = 0, ignore_index = True)
-    # else:
-    #     curr_results = sim_df
 
     # If file exists, change Simulation column accordingly
     if oper.path.isfile(result_filename):
@@ -895,7 +888,8 @@ def ELBO_Fixed(
         sim_df["Simulation"] += max(curr_results["Simulation"])
     
     # Save file locally
-    sim_df.to_csv(result_filename, mode = 'a', index = not oper.path.isfile(result_filename))
+    sim_df.to_csv(result_filename, mode = 'a', index = False,
+                  header = not oper.path.isfile(result_filename))
     print(f"Wrote {sim_df.shape[0]} rows to {result_filename}!")
 
     return None
