@@ -416,6 +416,10 @@ def ELBO_fixed_simulate(
                     except:
                         break
 
+            KXX.detach_() 
+            STKS.detach_()
+            STKS_chol.detach_()
+
             # Choose next x value (data acquisition)
             x_new_raw = torch.rand(1, D).logit()
             x_new_opt = torch.nn.Parameter(x_new_raw)
@@ -596,7 +600,11 @@ def ELBO_sqrt_simulate(
                     try:
                         STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except:
-                        break     
+                        break    
+
+            KXX.detach_() 
+            STKS.detach_()
+            STKS_chol.detach_()
 
             # Choose next x value (data acquisition)
             x_new_raw = torch.rand(1, D).logit()
@@ -764,6 +772,9 @@ def ELBO_bayesopt_simulate(
                         STKS_chol = torch.linalg.cholesky(KXX + 1e-6 * torch.eye(n_actions))
                     except:
                         break
+            
+            KXX.detach_()
+            STKS_chol.detach_()
 
             # Choose next x value (data acquisition)
             x_new_raw = torch.rand(1, D).logit()
