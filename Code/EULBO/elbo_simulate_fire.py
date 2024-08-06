@@ -534,12 +534,15 @@ def ELBO_sqrt_simulate(
         for epoch in range(1, n_epochs + 1):
             epoch_st = time.process_time()
 
+            # Compute number of needed actions
+            n_actions = math.floor(math.sqrt(X.shape[-2]))
+
             # Add new row to S at start of each epoch
-            S_new_row = torch.randn(1, n_actions)
+            S_new_row = torch.randn(1, S_raw.shape[-1])
             S_raw = torch.cat([S_raw, S_new_row], -2)
 
             # Add new column to S (if needed)
-            if math.floor(math.sqrt(X.shape[-2])) > n_actions:
+            if n_actions > S_raw.shape[-1]:
                 S_new_col = torch.randn(S_raw.shape[-2], 1)
                 S_raw = torch.cat([S_raw, S_new_col], -1)
 
@@ -632,21 +635,16 @@ def ELBO_sqrt_simulate(
             simulation_dict["Simulation"].append(sim + 1)
             simulation_dict["Epoch"].append(epoch)
             simulation_dict["N"].append(X.shape[-2])
-            n_actions = math.floor(math.sqrt(X.shape[-2]))
-            # simulation_dict["Actions"].append(n_actions)
-            simulation_dict["Actions"].append(str(n_actions) + "|" + str(S_opt.shape[-1]))
+            simulation_dict["Actions"].append(n_actions)
             simulation_dict["ActsName"].append("sqrt(N) Actions")
             simulation_dict["TrueNoise"].append(truenoise.item())
             simulation_dict["LengthScale"].append(ls.tolist())
             simulation_dict["OutputScale"].append(os.item())
             simulation_dict["SigmaSq"].append(sigma_sq.item())
-        
             y_best = y.max().item()
             simulation_dict["obsBest"].append(y_best)
-    
             true_best = true_y[y.argmax()].item()
             simulation_dict["trueBest"].append(true_best)
-
             simulation_dict["cpuTime"].append(epoch_et - epoch_st)
 
             # Print occasional progress update
