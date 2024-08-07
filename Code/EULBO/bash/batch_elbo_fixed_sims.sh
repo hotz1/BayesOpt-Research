@@ -7,7 +7,6 @@ source ~/envs/research/bin/activate
 
 # Script to run the desired job 
 cd ~/scratch/BayesOpt-Research
-JOB_SCRIPT="Code/EULBO/bash/run_elbo_fixed_sims.sh"
 cmd="python Code/EULBO/elbo_simulate_fire.py ELBO_Fixed --N_init=${N_init} --n_actions=${n_actions} --n_simulations=${n_simulations} --n_epochs=${n_epochs}"
 
 # Submit the first job
