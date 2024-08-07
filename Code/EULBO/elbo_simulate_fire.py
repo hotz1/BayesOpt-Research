@@ -392,6 +392,8 @@ def ELBO_fixed_simulate(
                         STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except Exception as error:
                         print(f"{type(error).__name__} exception occurred during hyperparameter optimization")
+                        print(f"Smallest eigenvalues of STKS: {torch.lobpcg(STKS, k = 3, largest = False)[0]}")
+                        print(f"Largest eigenvalues of STKS: {torch.lobpcg(STKS, k = 3, largest = False)[0]}")
                         break 
                             
                 gain_SHP = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
@@ -415,8 +417,7 @@ def ELBO_fixed_simulate(
                 except:
                     try:
                         STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                    except Exception as error:
-                        print(f"{type(error).__name__} exception occurred after hyperparameter optimization")
+                    except:
                         break  
 
             KXX.detach_() 
@@ -580,7 +581,9 @@ def ELBO_sqrt_simulate(
                         STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except Exception as error:
                         print(f"{type(error).__name__} exception occurred during hyperparameter optimization")
-                        break    
+                        print(f"Smallest eigenvalues of STKS: {torch.lobpcg(STKS, k = 3, largest = False)[0]}")
+                        print(f"Largest eigenvalues of STKS: {torch.lobpcg(STKS, k = 3, largest = False)[0]}")
+                        break 
                             
                 gain_SHP = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
                 gain_SHP.backward()
@@ -603,8 +606,7 @@ def ELBO_sqrt_simulate(
                 except:
                     try:
                         STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                    except Exception as error:
-                        print(f"{type(error).__name__} exception occurred after hyperparameter optimization")
+                    except:
                         break 
 
             KXX.detach_() 
@@ -755,7 +757,9 @@ def ELBO_bayesopt_simulate(
                         STKS_chol = torch.linalg.cholesky(KXX + 1e-6 * torch.eye(n_actions))
                     except Exception as error:
                         print(f"{type(error).__name__} exception occurred during hyperparameter optimization")
-                        break   
+                        print(f"Smallest eigenvalues of STKS: {torch.lobpcg(KXX, k = 3, largest = False)[0]}")
+                        print(f"Largest eigenvalues of STKS: {torch.lobpcg(KXX, k = 3, largest = False)[0]}")
+                        break  
                             
                 gain_HP = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
                 gain_HP.backward()
@@ -776,8 +780,7 @@ def ELBO_bayesopt_simulate(
                 except:
                     try:
                         STKS_chol = torch.linalg.cholesky(KXX + 1e-6 * torch.eye(n_actions))
-                    except Exception as error:
-                        print(f"{type(error).__name__} exception occurred after hyperparameter optimization")
+                    except:
                         break    
             
             KXX.detach_()
