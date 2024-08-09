@@ -3,7 +3,7 @@ library(tidyverse)
 
 # Read in data
 all_csvs <- list.files(here("Code/EULBO/Sim-Results/RawData"), 
-                       pattern = ".csv", full.names = T)
+                       pattern = "500E.csv", full.names = T)
 csv_list <- list()
 for(i in 1:length(all_csvs)){
   csv_list[[i]] <- read_csv(all_csvs[i])
@@ -50,7 +50,7 @@ epoch_summary %>%
 ggsave(here("Code/EULBO/Sim-Results/Plots/TrueBest_Comparison_500E.png"), device = "png",
        width = 12, height = 8, units = "in")
 
-# Create plot of trueBest
+# Create plot of time taken
 epoch_summary %>%
   filter(Epoch > 0) %>%
   ggplot() +
@@ -58,7 +58,7 @@ epoch_summary %>%
                   ymax = time_mean + qnorm(0.975) * time_sd), 
               color = "#CEEDEE", linewidth = 1.5, fill = "#CEEDEE88") +
   geom_line(aes(x = Epoch, y = time_mean), colour = "#7E87F2", linewidth = 1) +
-  labs(x = "Epoch", y = "CPU Time (s)", 
+  labs(x = "Epoch", y = "CPU Time (sec)", 
        title = "Average time taken per epoch of Separate Optimization") +
   facet_wrap(~ActsName) +
   theme_bw() +
