@@ -5,21 +5,36 @@ This is a weekly log of what work I have done on tasks for this research project
 ## Current & Ongoing Tasks
 
 - Coding: 
-    * [ ] Create Python notebook for fitting GPs with variational inference based methods (EULBO)
-    * [ ] Compare posterior predictive errors between iterative and batch GP algorithms
+    * [ ] Compare performance of different ELBO-based Bayesian Optimization algorithms 
     * [ ] Compare runtime (empirical, not theoretical) between iterative and batch GP algorithms
 - Theoretical:
+    * [ ] Simplify the central problem in *Vanilla Bayesian Optimization* 
     * [ ] Update [theory/notes document](./Notes/Research-General-Notes.tex)
 - Reading List:
-    * [x] *Computation-Aware Gaussian Processes* 
-    * [x] *Approximation-Aware Bayesian Optimization* 
-    * [x] *Variational Inference papers*
-    * [x] *Posterior and Computational Uncertainty in Gaussian Processes* (<https://arxiv.org/pdf/2205.15449>)
+    * [ ] *Vanilla Bayesian Optimization Performs Great in High Dimensions* (<https://arxiv.org/pdf/2402.02229>)
+    * [ ] *The Behavior and Convergence of Local Bayesian Optimization* (<https://arxiv.org/pdf/2305.15572>)
 - Other:
+    * [ ] Create brief slides/presentation on the two papers above
+    * [ ] Reorganize the Git repository (merge content back to main branch)
 
 ---
 
 ## Completed Tasks (Organized by Week)
+
+### August 05 - 09
+
+- [x] Create brief slides/presentation on *Active Statistical Inference* (<https://arxiv.org/pdf/2403.03208>)
+- [x] Improve the error printing statements in `elbo_simulate_fire.py`
+- [x] Change code in `elbo_simulate_fire.py` to use 64-bit numbers and rerun simulations 
+
+### July (Full Month)
+
+- [x] Create [Python notebook](./Code/EULBO/eulbo_implementation.ipynb) for fitting GPs based on EULBO
+- [x] Create [Python script](./Code/EULBO/elbo_simulate_fire.py) to run simulations for fitting GPs with ELBO-based methods
+    * [x] Run simulations with a fixed number of actions
+    * [x] Run simulations with an adaptive number of actions
+    * [x] Run simulations of standard Bayesian Optimization to use as a benchmark
+- [x] Gain access to Cedar cluster and run large-scale simulations on the cluster
 
 ### June 09 - June 15
 

@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import torch
-STD_normal = torch.distributions.normal.Normal(0, 1) # Standard Normal
+STD_normal = torch.distributions.normal.Normal(0, 1) # Standard Normal distribution
 
 from typing import Optional, Tuple
 # Type hints are strictly optional, but personally I find that they make code more reasonable
@@ -23,8 +23,14 @@ import time
 import fire
 
 # Set DTYPE and DEVICE variables for torch tensors
-DTYPE = torch.float32
-DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+DTYPE = torch.float64
+torch.set_default_dtype(torch.float64)
+# DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+if torch.cuda.is_available():
+    torch.set_default_device("cuda")
+else:
+    torch.set_default_device("cpu")
+
 
 def mu(X: Float[Tensor, "N D"]) -> Float[Tensor, "N"]:
     r"""
@@ -221,7 +227,7 @@ def hartmann_six(X: Float[Tensor, "N 6"]) -> Float[Tensor, "N"]:
 def observe(
     func: Callable[[Float[Tensor, "N D"]], Float[Tensor, "N"]],
     X: Float[Tensor, "N D"], 
-    sigma_sq: Float = 1e-2,
+    sigma_sq: Float = 0,
 ) -> Float[Tensor, "N"]:
     r"""
     A "wrapper" to return y = func(X) + noise.
@@ -233,7 +239,6 @@ def observe(
     
     true_obs = func(X)
     return true_obs + torch.randn_like(true_obs).mul(math.sqrt(sigma_sq))
-    # return true_obs
 
 def ELBO(
     S: Float[Tensor, "N T"],
@@ -310,7 +315,7 @@ def ELBO_fixed_simulate(
         "Method": [], 
         "Simulation": [], 
         "Epoch": [], 
-        "N":[],
+        "N": [],
         "Actions": [],
         "ActsName": [],
         "TrueNoise": [],
@@ -340,42 +345,72 @@ def ELBO_fixed_simulate(
         simulation_dict["LengthScale"].append(np.nan)
         simulation_dict["OutputScale"].append(np.nan)
         simulation_dict["SigmaSq"].append(np.nan)
-        
         y_best = y.max().item()
         simulation_dict["obsBest"].append(y_best)
-    
         true_best = true_y[y.argmax()].item()
         simulation_dict["trueBest"].append(true_best)
-
         simulation_dict["cpuTime"].append(np.nan)
+
+        # Initialize random action matrix (off by one to add one row per epoch)
+        S_raw = torch.randn(X.shape[-2] - 1, n_actions)
+
+        # Initialize GP hyperparameters (fixed initialization)
+        ls_raw = torch.zeros(1, D)
+        os_raw = torch.zeros(1, 1)
+        sigma_sq_raw = torch.zeros(1, 1)
         
-        # for epoch in tqdm(range(n_epochs), leave = False):
-        for epoch in range(n_epochs):
+        for epoch in range(1, n_epochs + 1):
             epoch_st = time.process_time()
 
-            # Initialize S, x_new, GP hyperparameters randomly
-            S_raw = torch.randn(X.shape[-2], n_actions)
-            ls_raw = torch.randn(1, D)
-            os_raw = torch.randn(1, 1)
-            sigma_sq_raw = torch.randn(1, 1)
-            x_new_raw = torch.rand(1, D).logit()
-            
-
+            # Add new row to S at start of each epoch
+            S_new_row = torch.randn(1, n_actions)
+            S_raw = torch.cat([S_raw, S_new_row], -2)
             S_opt = torch.nn.Parameter(S_raw)
+
             ls_opt = torch.nn.Parameter(ls_raw)
             os_opt = torch.nn.Parameter(os_raw)
             sigma_sq_opt = torch.nn.Parameter(sigma_sq_raw)
-            x_new_opt = torch.nn.Parameter(x_new_raw)
 
-            # Optimize S and GP hyperparameters 
-            optimizer_S = torch.optim.Adam(params = [S_opt, ls_opt, os_opt, sigma_sq_opt], lr = 0.005, maximize = True)
-            for _ in range(500):
+            # Optimize S and GP hyperparameters
+            optimizer_SHP = torch.optim.Adam(params = [S_opt, ls_opt, os_opt, sigma_sq_opt], lr = 0.005, maximize = True)
+            for _ in range(1000):
+                # Transform raw values
                 S_normed = normalize_cols(S_opt)
                 ls = torch.nn.functional.softplus(ls_opt)
                 os = torch.nn.functional.softplus(os_opt)
                 sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
 
+                # Compute Matern kernel 
                 KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
+
+                # Compute S'KS and Cholesky of S'KS
+                STKS = S_normed.mT @ KXX @ S_normed
+                try:
+                    STKS_chol = torch.linalg.cholesky(STKS)
+                except:
+                    try:
+                        STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
+                    except Exception as error:
+                        print(f"{type(error).__name__} exception occurred during hyperparameter optimization")
+                        print(f"Smallest eigenvalues of STKS: {torch.lobpcg(STKS, k = 3, largest = False)[0]}")
+                        print(f"Largest eigenvalues of STKS: {torch.lobpcg(STKS, k = 3, largest = False)[0]}")
+                        break 
+                            
+                gain_SHP = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
+                gain_SHP.backward()
+                optimizer_SHP.step()
+                optimizer_SHP.zero_grad()
+         
+            # Compute S'KS and Cholesky of S'KS
+            S_normed = normalize_cols(S_opt).detach()
+            ls = torch.nn.functional.softplus(ls_opt).detach()
+            os = torch.nn.functional.softplus(os_opt).detach()
+            sigma_sq = torch.nn.functional.softplus(sigma_sq_opt).detach()   
+
+            with torch.no_grad():
+                # Compute Matern kernel
+                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
+
                 STKS = S_normed.mT @ KXX @ S_normed
                 try:
                     STKS_chol = torch.linalg.cholesky(STKS)
@@ -383,37 +418,25 @@ def ELBO_fixed_simulate(
                     try:
                         STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except:
-                        break   
-                        
-                gain_S = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
-                gain_S.backward()
-                optimizer_S.step()
-                optimizer_S.zero_grad()
-                
-            S_normed = normalize_cols(S_opt).detach()          
-            STKS = S_normed.mT @ KXX @ S_normed
-            try:
-                STKS_chol = torch.linalg.cholesky(STKS)
-            except:
-                try:
-                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                except:
-                    break 
-            STKS_chol.detach_()
-            ls.detach_()
-            os.detach_()
-            sigma_sq.detach_()
+                        break  
 
-            optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.01, maximize = True)
+            KXX.detach_() 
+            STKS.detach_()
+            STKS_chol.detach_()
+
+            # Choose next x value (data acquisition)
+            x_new_raw = torch.rand(1, D).logit()
+            x_new_opt = torch.nn.Parameter(x_new_raw)
+            optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.005, maximize = True)
             for _ in range(500):
-                # Ensure S, x are "valid"
+                # Transform x value to be a valid input
                 x_normed = x_new_opt.sigmoid()  
                 
                 # Compute the variational inference distribution q_S(f) = f|(S'D) at x_normed
                 VI_mean, VI_var = compute_posterior_mean_and_variance_action(x_normed, X, y, S_normed, STKS_chol, ls, os)
                 VI_sd = VI_var.clamp(min = 1.0e-10).sqrt()
 
-                # Explicitly compute log(expected improvement)
+                # Compute exact expected improvement
                 z_score = (VI_mean - y_best).div(VI_sd)
                 gain_x = VI_sd * (STD_normal.log_prob(z_score).exp() + z_score * STD_normal.cdf(z_score))
                 gain_x.backward()
@@ -421,11 +444,12 @@ def ELBO_fixed_simulate(
                 optimizer_x.zero_grad()
     
             # Update data  
-            x_new = x_new_opt.sigmoid()       
-            x_new.detach_()
-            # K_chol = update_chol_newdata(K_chol, X, x_new, ls, os, sigma_sq)
+            with torch.no_grad():
+                x_new = x_new_opt.sigmoid()       
+            
             y_new = observe(hartmann_six, x_new, truenoise)
             true_y_new = hartmann_six(x_new)
+            
             X = torch.cat([X, x_new], -2)
             y = torch.cat([y, y_new], -1)
             true_y = torch.cat([true_y, true_y_new], -1)
@@ -435,7 +459,7 @@ def ELBO_fixed_simulate(
             # Record info for the epoch
             simulation_dict["Method"].append("Separate")
             simulation_dict["Simulation"].append(sim + 1)
-            simulation_dict["Epoch"].append(epoch + 1)
+            simulation_dict["Epoch"].append(epoch)
             simulation_dict["N"].append(X.shape[-2])
             simulation_dict["Actions"].append(n_actions)
             simulation_dict["ActsName"].append(str(n_actions) + " Actions")
@@ -443,17 +467,18 @@ def ELBO_fixed_simulate(
             simulation_dict["LengthScale"].append(ls.tolist())
             simulation_dict["OutputScale"].append(os.item())
             simulation_dict["SigmaSq"].append(sigma_sq.item())
-        
             y_best = y.max().item()
-            simulation_dict["obsBest"].append(y_best)
-    
+            simulation_dict["obsBest"].append(y_best)    
             true_best = true_y[y.argmax()].item()
             simulation_dict["trueBest"].append(true_best)
-
             simulation_dict["cpuTime"].append(epoch_et - epoch_st)
 
-        # Print progress update
-        print(f"Completed {n_epochs} epochs for simulation {sim + 1}!")
+            # Print occasional progress update
+            if epoch % 50 == 0:
+                print(f"\tSimulation {sim + 1}: Completed epoch {epoch}")
+
+        # Print progress update after finishing a full simulation
+        print(f"Completed all {epoch} epochs for simulation {sim + 1}!\n")
 
     return simulation_dict
 
@@ -493,51 +518,88 @@ def ELBO_sqrt_simulate(
         simulation_dict["Simulation"].append(sim + 1)
         simulation_dict["Epoch"].append(0)
         simulation_dict["N"].append(X.shape[-2])
-
         n_actions = math.floor(math.sqrt(X.shape[-2]))
         simulation_dict["Actions"].append(n_actions)
         simulation_dict["ActsName"].append("sqrt(N) Actions")
-
         simulation_dict["TrueNoise"].append(truenoise.item())
         simulation_dict["LengthScale"].append(np.nan)
         simulation_dict["OutputScale"].append(np.nan)
         simulation_dict["SigmaSq"].append(np.nan)
-        
         y_best = y.max().item()
         simulation_dict["obsBest"].append(y_best)
-    
         true_best = true_y[y.argmax()].item()
         simulation_dict["trueBest"].append(true_best)
-
         simulation_dict["cpuTime"].append(np.nan)
+
+        # Initialize random action matrix (off by one to add one row per epoch)
+        S_raw = torch.randn(X.shape[-2] - 1, n_actions)
+
+        # Initialize GP hyperparameters (fixed initialization)
+        ls_raw = torch.zeros(1, D)
+        os_raw = torch.zeros(1, 1)
+        sigma_sq_raw = torch.zeros(1, 1)
         
-        # for epoch in tqdm(range(n_epochs), leave = False):
-        for epoch in range(n_epochs):
+        for epoch in range(1, n_epochs + 1):
             epoch_st = time.process_time()
 
-            # Initialize S, x_new, GP hyperparameters randomly
-            S_raw = torch.randn(X.shape[-2], n_actions)
-            ls_raw = torch.randn(1, D)
-            os_raw = torch.randn(1, 1)
-            sigma_sq_raw = torch.randn(1, 1)
-            x_new_raw = torch.rand(1, D).logit()
-            
+            # Compute number of needed actions
+            n_actions = math.floor(math.sqrt(X.shape[-2]))
+
+            # Add new row to S at start of each epoch
+            S_new_row = torch.randn(1, S_raw.shape[-1])
+            S_raw = torch.cat([S_raw, S_new_row], -2)
+
+            # Add new column to S (if needed)
+            if n_actions > S_raw.shape[-1]:
+                S_new_col = torch.randn(S_raw.shape[-2], 1)
+                S_raw = torch.cat([S_raw, S_new_col], -1)
 
             S_opt = torch.nn.Parameter(S_raw)
+
             ls_opt = torch.nn.Parameter(ls_raw)
             os_opt = torch.nn.Parameter(os_raw)
             sigma_sq_opt = torch.nn.Parameter(sigma_sq_raw)
-            x_new_opt = torch.nn.Parameter(x_new_raw)
 
-            # Optimize S and GP hyperparameters 
-            optimizer_S = torch.optim.Adam(params = [S_opt, ls_opt, os_opt, sigma_sq_opt], lr = 0.005, maximize = True)
-            for _ in range(500):
+            # Optimize S and GP hyperparameters
+            optimizer_SHP = torch.optim.Adam(params = [S_opt, ls_opt, os_opt, sigma_sq_opt], lr = 0.005, maximize = True)
+            for _ in range(1000):
+                # Transform raw values
                 S_normed = normalize_cols(S_opt)
                 ls = torch.nn.functional.softplus(ls_opt)
                 os = torch.nn.functional.softplus(os_opt)
                 sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
 
+                # Compute Matern kernel 
                 KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
+
+                # Compute S'KS and Cholesky of S'KS
+                STKS = S_normed.mT @ KXX @ S_normed
+                try:
+                    STKS_chol = torch.linalg.cholesky(STKS)
+                except:
+                    try:
+                        STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
+                    except Exception as error:
+                        print(f"{type(error).__name__} exception occurred during hyperparameter optimization")
+                        print(f"Smallest eigenvalues of STKS: {torch.lobpcg(STKS, k = 3, largest = False)[0]}")
+                        print(f"Largest eigenvalues of STKS: {torch.lobpcg(STKS, k = 3, largest = False)[0]}")
+                        break 
+                            
+                gain_SHP = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
+                gain_SHP.backward()
+                optimizer_SHP.step()
+                optimizer_SHP.zero_grad()
+         
+            # Compute S'KS and Cholesky of S'KS
+            S_normed = normalize_cols(S_opt).detach()
+            ls = torch.nn.functional.softplus(ls_opt).detach()
+            os = torch.nn.functional.softplus(os_opt).detach()
+            sigma_sq = torch.nn.functional.softplus(sigma_sq_opt).detach()
+
+            with torch.no_grad():
+                # Compute Matern kernel
+                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
+
                 STKS = S_normed.mT @ KXX @ S_normed
                 try:
                     STKS_chol = torch.linalg.cholesky(STKS)
@@ -545,30 +607,191 @@ def ELBO_sqrt_simulate(
                     try:
                         STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
                     except:
-                        break   
-                        
-                gain_S = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
-                gain_S.backward()
-                optimizer_S.step()
-                optimizer_S.zero_grad()
-                
-            S_normed = normalize_cols(S_opt).detach()          
-            STKS = S_normed.mT @ KXX @ S_normed
-            try:
-                STKS_chol = torch.linalg.cholesky(STKS)
-            except:
-                try:
-                    STKS_chol = torch.linalg.cholesky(STKS + 1e-6 * torch.eye(n_actions))
-                except:
-                    break 
-            STKS_chol.detach_()
-            ls.detach_()
-            os.detach_()
-            sigma_sq.detach_()
+                        break 
 
-            optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.01, maximize = True)
+            KXX.detach_() 
+            STKS.detach_()
+            STKS_chol.detach_()
+
+            # Choose next x value (data acquisition)
+            x_new_raw = torch.rand(1, D).logit()
+            x_new_opt = torch.nn.Parameter(x_new_raw)
+            optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.005, maximize = True)
             for _ in range(500):
-                # Ensure S, x are "valid"
+                # Transform x value to be a valid input
+                x_normed = x_new_opt.sigmoid()  
+                
+                # Compute the variational inference distribution q_S(f) = f|(S'D) at x_normed
+                VI_mean, VI_var = compute_posterior_mean_and_variance_action(x_normed, X, y, S_normed, STKS_chol, ls, os)
+                VI_sd = VI_var.clamp(min = 1.0e-10).sqrt()
+
+                # Compute exact expected improvement
+                z_score = (VI_mean - y_best).div(VI_sd)
+                gain_x = VI_sd * (STD_normal.log_prob(z_score).exp() + z_score * STD_normal.cdf(z_score))
+                gain_x.backward()
+                optimizer_x.step()
+                optimizer_x.zero_grad()
+    
+            # Update data  
+            with torch.no_grad():
+                x_new = x_new_opt.sigmoid() 
+
+            y_new = observe(hartmann_six, x_new, truenoise)
+            true_y_new = hartmann_six(x_new)
+
+            X = torch.cat([X, x_new], -2)
+            y = torch.cat([y, y_new], -1)
+            true_y = torch.cat([true_y, true_y_new], -1)
+
+            epoch_et = time.process_time()
+        
+            # Record info for the epoch
+            simulation_dict["Method"].append("Separate")
+            simulation_dict["Simulation"].append(sim + 1)
+            simulation_dict["Epoch"].append(epoch)
+            simulation_dict["N"].append(X.shape[-2])
+            simulation_dict["Actions"].append(n_actions)
+            simulation_dict["ActsName"].append("sqrt(N) Actions")
+            simulation_dict["TrueNoise"].append(truenoise.item())
+            simulation_dict["LengthScale"].append(ls.tolist())
+            simulation_dict["OutputScale"].append(os.item())
+            simulation_dict["SigmaSq"].append(sigma_sq.item())
+            y_best = y.max().item()
+            simulation_dict["obsBest"].append(y_best)
+            true_best = true_y[y.argmax()].item()
+            simulation_dict["trueBest"].append(true_best)
+            simulation_dict["cpuTime"].append(epoch_et - epoch_st)
+
+            # Print occasional progress update
+            if epoch % 50 == 0:
+                print(f"\tSimulation {sim + 1}: Completed epoch {epoch}")
+
+        # Print progress update after finishing a full simulation
+        print(f"Completed all {epoch} epochs for simulation {sim + 1}!\n")
+
+    return simulation_dict
+
+def ELBO_bayesopt_simulate(
+    D: Integer, 
+    N_init: Integer,
+    truenoise: Float[Tensor, "1 1"],
+    n_simulations: Integer,
+    n_epochs: Integer,
+) -> dict:
+    
+    simulation_dict = {
+        "Method": [], 
+        "Simulation": [], 
+        "Epoch": [], 
+        "N":[],
+        "Actions": [],
+        "ActsName": [],
+        "TrueNoise": [],
+        "LengthScale": [],
+        "OutputScale": [],
+        "SigmaSq": [],
+        "obsBest": [],
+        "trueBest": [],
+        "cpuTime": []
+    }
+
+    for sim in range(n_simulations):
+
+        # Simulate dataset 
+        X = torch.rand(N_init, D)
+        y = observe(hartmann_six, X, truenoise)
+        true_y = hartmann_six(X)
+
+        # Record initial info for the simulation
+        simulation_dict["Method"].append("Separate")
+        simulation_dict["Simulation"].append(sim + 1)
+        simulation_dict["Epoch"].append(0)
+        simulation_dict["N"].append(X.shape[-2])
+        n_actions = X.shape[-2]
+        simulation_dict["Actions"].append(n_actions)
+        simulation_dict["ActsName"].append("BayesOpt")
+        simulation_dict["TrueNoise"].append(truenoise.item())
+        simulation_dict["LengthScale"].append(np.nan)
+        simulation_dict["OutputScale"].append(np.nan)
+        simulation_dict["SigmaSq"].append(np.nan)
+        y_best = y.max().item()
+        simulation_dict["obsBest"].append(y_best)
+        true_best = true_y[y.argmax()].item()
+        simulation_dict["trueBest"].append(true_best)
+        simulation_dict["cpuTime"].append(np.nan)
+
+        # Initialize GP hyperparameters (fixed initialization)
+        ls_raw = torch.zeros(1, D)
+        os_raw = torch.zeros(1, 1)
+        sigma_sq_raw = torch.zeros(1, 1)
+
+        for epoch in range(1, n_epochs + 1):
+            epoch_st = time.process_time()
+
+            # Compute number of needed actions
+            n_actions = X.shape[-2]
+
+            # Fixed action matrix (just identity matrix)
+            S_normed = torch.eye(n_actions)
+
+            ls_opt = torch.nn.Parameter(ls_raw)
+            os_opt = torch.nn.Parameter(os_raw)
+            sigma_sq_opt = torch.nn.Parameter(sigma_sq_raw)
+
+            # Optimize GP hyperparameters
+            optimizer_HP = torch.optim.Adam(params = [ls_opt, os_opt, sigma_sq_opt], lr = 0.005, maximize = True)
+            for _ in range(1000):
+                # Transform raw values
+                ls = torch.nn.functional.softplus(ls_opt)
+                os = torch.nn.functional.softplus(os_opt)
+                sigma_sq = torch.nn.functional.softplus(sigma_sq_opt)
+
+                # Compute Matern kernel 
+                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
+
+                # Compute S'KS and Cholesky of S'KS
+                try:
+                    STKS_chol = torch.linalg.cholesky(KXX)
+                except:
+                    try:
+                        STKS_chol = torch.linalg.cholesky(KXX + 1e-6 * torch.eye(n_actions))
+                    except Exception as error:
+                        print(f"{type(error).__name__} exception occurred during hyperparameter optimization")
+                        print(f"Smallest eigenvalues of STKS: {torch.lobpcg(KXX, k = 3, largest = False)[0]}")
+                        print(f"Largest eigenvalues of STKS: {torch.lobpcg(KXX, k = 3, largest = False)[0]}")
+                        break  
+                            
+                gain_HP = ELBO(S_normed, X, y, KXX, STKS_chol, ls, os, sigma_sq)
+                gain_HP.backward()
+                optimizer_HP.step()
+                optimizer_HP.zero_grad()
+            
+            # Compute S'KS and Cholesky of S'KS
+            ls = torch.nn.functional.softplus(ls_opt).detach()
+            os = torch.nn.functional.softplus(os_opt).detach()
+            sigma_sq = torch.nn.functional.softplus(sigma_sq_opt).detach()
+
+            with torch.no_grad():
+                # Compute Matern kernel
+                KXX = matern_kernel(X, X, ls, os) + (sigma_sq + 1e-4) * torch.eye(X.shape[-2]) # epsilon = 1e-4
+
+                try:
+                    STKS_chol = torch.linalg.cholesky(KXX)
+                except:
+                    try:
+                        STKS_chol = torch.linalg.cholesky(KXX + 1e-6 * torch.eye(n_actions))
+                    except:
+                        break    
+            
+            KXX.detach_()
+            STKS_chol.detach_()
+
+            # Choose next x value (data acquisition)
+            x_new_raw = torch.rand(1, D).logit()
+            x_new_opt = torch.nn.Parameter(x_new_raw)
+            optimizer_x = torch.optim.Adam(params = [x_new_opt], lr = 0.005, maximize = True)
+            for _ in range(500):
+                # Transform x value to be a valid input
                 x_normed = x_new_opt.sigmoid()  
                 
                 # Compute the variational inference distribution q_S(f) = f|(S'D) at x_normed
@@ -583,10 +806,12 @@ def ELBO_sqrt_simulate(
                 optimizer_x.zero_grad()
     
             # Update data  
-            x_new = x_new_opt.sigmoid()       
-            x_new.detach_()
+            with torch.no_grad():
+                x_new = x_new_opt.sigmoid()       
+
             y_new = observe(hartmann_six, x_new, truenoise)
             true_y_new = hartmann_six(x_new)
+
             X = torch.cat([X, x_new], -2)
             y = torch.cat([y, y_new], -1)
             true_y = torch.cat([true_y, true_y_new], -1)
@@ -596,28 +821,26 @@ def ELBO_sqrt_simulate(
             # Record info for the epoch
             simulation_dict["Method"].append("Separate")
             simulation_dict["Simulation"].append(sim + 1)
-            simulation_dict["Epoch"].append(epoch + 1)
+            simulation_dict["Epoch"].append(epoch)
             simulation_dict["N"].append(X.shape[-2])
-
-            n_actions = math.floor(math.sqrt(X.shape[-2]))
             simulation_dict["Actions"].append(n_actions)
-            simulation_dict["ActsName"].append("sqrt(N) Actions")
-
+            simulation_dict["ActsName"].append("BayesOpt")
             simulation_dict["TrueNoise"].append(truenoise.item())
             simulation_dict["LengthScale"].append(ls.tolist())
             simulation_dict["OutputScale"].append(os.item())
             simulation_dict["SigmaSq"].append(sigma_sq.item())
-        
             y_best = y.max().item()
-            simulation_dict["obsBest"].append(y_best)
-    
+            simulation_dict["obsBest"].append(y_best)    
             true_best = true_y[y.argmax()].item()
             simulation_dict["trueBest"].append(true_best)
-
             simulation_dict["cpuTime"].append(epoch_et - epoch_st)
 
-        # Print progress update
-        print(f"Completed {n_epochs} epochs for simulation {sim + 1}!")
+            # Print occasional progress update
+            if epoch % 50 == 0:
+                print(f"\tSimulation {sim + 1}: Completed epoch {epoch}")
+
+        # Print progress update after finishing a full simulation
+        print(f"Completed all {epoch} epochs for simulation {sim + 1}!\n")
 
     return simulation_dict
 
@@ -642,14 +865,22 @@ def ELBO_Fixed(
     n_simulations = int(n_simulations)
     n_epochs = int(n_epochs)
 
+    # Run simulations and convert the returned dictionary to a DataFrame
     simulation_dict = ELBO_fixed_simulate(D, N_init, n_actions, truenoise, n_simulations, n_epochs)
     sim_df = pd.DataFrame(simulation_dict)
         
-    # Count existing number of csv files
-    n_csvs = len(fnmatch.filter(oper.listdir('./Code/EULBO/Sim-Results/RawData/'), '*.csv'))
+    # Check for existing results file
+    result_filename = f"./Code/EULBO/Sim-Results/RawData/ELBO_Fixed{n_actions}_{n_epochs}E.csv"
 
+    # If file exists, change Simulation column accordingly
+    if oper.path.isfile(result_filename):
+        curr_results = pd.read_csv(result_filename)
+        sim_df["Simulation"] += max(curr_results["Simulation"])
+    
     # Save file locally
-    sim_df.to_csv(f"./Code/EULBO/Sim-Results/RawData/ELBO_Fixed_Results_{n_csvs}.csv", index = False)
+    sim_df.to_csv(result_filename, mode = 'a', index = False,
+                  header = not oper.path.isfile(result_filename))
+    print(f"Wrote {sim_df.shape[0]} rows to {result_filename}!")
 
     return None
 
@@ -672,18 +903,64 @@ def ELBO_SQRT(
     n_simulations = int(n_simulations)
     n_epochs = int(n_epochs)
 
+    # Run simulations and convert the returned dictionary to a DataFrame
     simulation_dict = ELBO_sqrt_simulate(D, N_init, truenoise, n_simulations, n_epochs)
     sim_df = pd.DataFrame(simulation_dict)
-        
-    # Count existing number of csv files
-    n_csvs = len(fnmatch.filter(oper.listdir('./Code/EULBO/Sim-Results/RawData/'), '*.csv'))
 
+    # Check for existing results file
+    result_filename = f"./Code/EULBO/Sim-Results/RawData/ELBO_SQRT_{n_epochs}E.csv"
+
+    # If file exists, change Simulation column accordingly
+    if oper.path.isfile(result_filename):
+        curr_results = pd.read_csv(result_filename)
+        sim_df["Simulation"] += max(curr_results["Simulation"])
+    
     # Save file locally
-    sim_df.to_csv(f"./Code/EULBO/Sim-Results/RawData/ELBO_SQRT_Results_{n_csvs}.csv", index = False)
+    sim_df.to_csv(result_filename, mode = 'a', index = False,
+                  header = not oper.path.isfile(result_filename))
+    print(f"Wrote {sim_df.shape[0]} rows to {result_filename}!")
+
+    return None
+
+def ELBO_BayesOpt( 
+    N_init: Integer,
+    n_simulations: Integer,
+    n_epochs: Integer,
+) -> None:
+    r"""
+    A function used by Fire to call ELBO_bayesopt_simulate from the command line and save results
+    locally as a csv file
+    """
+
+    # Set two constants
+    D = 6
+    truenoise = torch.zeros(1,1)
+
+    # Ensure parameters are integers
+    N_init = int(N_init)
+    n_simulations = int(n_simulations)
+    n_epochs = int(n_epochs)
+
+    simulation_dict = ELBO_bayesopt_simulate(D, N_init, truenoise, n_simulations, n_epochs)
+    sim_df = pd.DataFrame(simulation_dict)
+
+    # Check for existing results file
+    result_filename = f"./Code/EULBO/Sim-Results/RawData/ELBO_BayesOpt_{n_epochs}E.csv"
+
+    # If file exists, change Simulation column accordingly
+    if oper.path.isfile(result_filename):
+        curr_results = pd.read_csv(result_filename)
+        sim_df["Simulation"] += max(curr_results["Simulation"])
+    
+    # Save file locally
+    sim_df.to_csv(result_filename, mode = 'a', index = False,
+                  header = not oper.path.isfile(result_filename))
+    print(f"Wrote {sim_df.shape[0]} rows to {result_filename}!")
 
     return None
 
 if __name__ == '__main__':
     # Expose the simulation functions to the CLI using fire.Fire
     fire.Fire({'ELBO_Fixed': ELBO_Fixed,
-               'ELBO_SQRT': ELBO_SQRT})
+               'ELBO_SQRT': ELBO_SQRT,
+               'ELBO_BayesOpt': ELBO_BayesOpt})

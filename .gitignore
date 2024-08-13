@@ -24,3 +24,5 @@
 
 # Image files
 *.png
+
+*.vscode**
