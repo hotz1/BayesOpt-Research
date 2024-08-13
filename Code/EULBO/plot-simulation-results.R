@@ -2,7 +2,9 @@ library(here)
 library(tidyverse)
 
 # Select number of epochs per simulation (for finding correct filenames)
-n_epochs <- 500
+cat("Select the number of epochs per simulation.\n")
+n_epochs = as.integer(readLines(con = "stdin", n = 1))
+# n_epochs <- 500
 
 # Get filenames corresponding to desired number of epochs
 all_csvs <- list.files(here("Code/EULBO/Sim-Results/RawData"), 
