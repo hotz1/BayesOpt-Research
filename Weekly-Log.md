@@ -15,13 +15,15 @@ This is a weekly log of what work I have done on tasks for this research project
     * [ ] *The Behavior and Convergence of Local Bayesian Optimization* (<https://arxiv.org/pdf/2305.15572>)
 - Other:
     * [ ] Create brief slides/presentation on the two papers above
-    * [ ] Reorganize the Git repository (merge content back to main branch)
+    * [x] Reorganize the Git repository (merge content back to main branch)
 
 ---
 
 ## Completed Tasks (Organized by Week)
 
-### August 05 - 09
+### August 11 - 17
+
+### August 04 - 10
 
 - [x] Create brief slides/presentation on *Active Statistical Inference* (<https://arxiv.org/pdf/2403.03208>)
 - [x] Improve the error printing statements in `elbo_simulate_fire.py`
