@@ -1,9 +1,14 @@
 library(here)
 library(tidyverse)
 
-# Read in data
+# Select number of epochs per simulation (for finding correct filenames)
+n_epochs <- 500
+
+# Get filenames corresponding to desired number of epochs
 all_csvs <- list.files(here("Code/EULBO/Sim-Results/RawData"), 
-                       pattern = ".csv", full.names = T)
+                       pattern = paste0("_", n_epochs, "E.csv"), full.names = T)
+
+# Read in the data
 csv_list <- list()
 for(i in 1:length(all_csvs)){
   csv_list[[i]] <- read_csv(all_csvs[i])
@@ -12,7 +17,7 @@ for(i in 1:length(all_csvs)){
 # Combine data
 all_sims <- bind_rows(csv_list)
 
-# Make Simulation no. categorical
+# Make Simulation number a categorical variable
 all_sims <- all_sims %>%
   mutate(Simulation = as.factor(Simulation))
 
@@ -20,11 +25,10 @@ all_sims <- all_sims %>%
 all_sims <- all_sims %>% 
   group_by(Simulation, ActsName) %>% 
   mutate(Total = n()) %>%
-  filter(Total == 501) %>%
+  filter(Total == n_epochs + 1) %>%
   select(-Total)
-  
 
-# Summarize by type and by epoch
+# Summarize by simulation type and by epoch
 epoch_summary <- all_sims %>%
   group_by(Epoch, ActsName) %>%
   summarize(y_mean = mean(trueBest), 
@@ -34,7 +38,7 @@ epoch_summary <- all_sims %>%
             Sims = n()) %>%
   mutate(ActsName = paste0(ActsName, " (", Sims, " Simulations)"))
 
-# Create plot of trueBest
+# Create plot of trueBest per epoch
 epoch_summary %>%
   ggplot() +
   geom_ribbon(aes(x = Epoch, ymin = y_mean + qnorm(0.025) * y_sd, ymax = y_mean + qnorm(0.975) * y_sd), 
@@ -47,8 +51,10 @@ epoch_summary %>%
   theme(plot.title = element_text(hjust = 0.5), 
         plot.subtitle = element_text(hjust = 0.5))
 
-ggsave(here("Code/EULBO/Sim-Results/Plots/TrueBest_Comparison_500E.png"), device = "png",
-       width = 12, height = 8, units = "in")
+# Save plot locally
+ggsave(filename = paste0("TrueBest_Comparison_", n_epochs, "E.png"),
+       path = here("Code/EULBO/Sim-Results/Plots"), 
+       device = "png", width = 12, height = 8, units = "in")
 
 # Create plot of trueBest
 epoch_summary %>%
@@ -58,12 +64,14 @@ epoch_summary %>%
                   ymax = time_mean + qnorm(0.975) * time_sd), 
               color = "#CEEDEE", linewidth = 1.5, fill = "#CEEDEE88") +
   geom_line(aes(x = Epoch, y = time_mean), colour = "#7E87F2", linewidth = 1) +
-  labs(x = "Epoch", y = "CPU Time (s)", 
+  labs(x = "Epoch", y = "CPU Time (sec)", 
        title = "Average time taken per epoch of Separate Optimization") +
   facet_wrap(~ActsName) +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5), 
         plot.subtitle = element_text(hjust = 0.5))
 
-ggsave(here("Code/EULBO/Sim-Results/Plots/TimeTaken_Comparison_500E.png"), device = "png",
-       width = 12, height = 8, units = "in")
+# Save plot locally
+ggsave(filename = paste0("TimeTaken_Comparison_", n_epochs, "E.png"),
+       path = here("Code/EULBO/Sim-Results/Plots"), 
+       device = "png", width = 12, height = 8, units = "in")
