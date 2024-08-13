@@ -1,0 +1,49 @@
+---
+title: 
+  "Vanilla Bayesian Optimization Performs Great in High Dimensions"
+subtitle:
+  "Authors: Carl Hvarfner, Erik O. Hellsten, Luigi Nardi"
+date: 
+  today
+date-format:
+  "MMMM DD, YYYY"
+format: 
+  beamer:
+    navigation: empty
+pdf-engine: pdflatex
+include-in-header: 
+  text: |
+    \usepackage{graphicx, amssymb, amsmath, amsthm, amsfonts, mathrsfs}
+    \setbeamertemplate{itemize subitem}[ball]
+    \setbeamertemplate{itemize subsubitem}[square]
+    \usefonttheme[onlymath]{serif}
+    \input{../../tex-macros/math-alphabets.tex}
+    \input{../../tex-macros/math-macros.tex}
+    \newcommand{\bs}[1]{\boldsymbol{#1}}
+---
+
+## Problem Setting
+
+- We want to use Bayesian Optimization to find $\arg\max_{\bs{x} \in \calX}f(\bs{x})$, where $\dim(\calX)$ is large.
+- We query a dataset of $n$ observations of the form $y(\bs{x}_{i}) = f(\bs{x}_{i}) + \epsilon_{i}$, with $\epsilon_{i} \simiid \calN(0, \sigma_{\epsilon}^{2})$.
+- The authors quantify the *assumed complexity* of this problem using the *Maximal Information Gain* (MIG) $$\gamma_{n} = \max_{\bfX_{n} \in \calX^{n}}I(y_{\bfX_{n}}, f_{\bfX_{n}}) = \max_{\bfX_{n} \in \calX^{n}}\frac{1}{2}\log\left\vert\bfI + \sigma^{-2}_{\epsilon}k(\bfX_{n}, \bfX_{n})\right\vert$$
+  * The MIG is maximized when samples are fully independent.
+  * The MIG can quantify the 'difficulty' of `BayesOpt` under the assumption that the kernel $k(\cdot, \cdot)$ is accurate.
+  * The difference in MIG with respect to $n$ quantifies additional information gained.
+
+## MIG Visualization
+
+![$\mathcal{GP}$ posteriors for three different lengthscales ($\ell$)](./MIGplot_gp.jpg){height=25%}
+
+![MIG vs. number of samples for each lengthscale](./MIGplot_mig.jpg){height=40%}
+
+## MIG Visualization
+
+![MIG vs. number of samples for different values of $D = \dim(\calX)$](./IG_vanilla.jpg){height=75%}
+
+## Works Cited
+
+- <https://arxiv.org/pdf/2402.02229>
+- <https://arxiv.org/pdf/2305.15572>
+- <https://arxiv.org/pdf/2106.11899>
+- <https://arxiv.org/pdf/0912.3995>
