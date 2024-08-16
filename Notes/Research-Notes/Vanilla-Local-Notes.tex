@@ -1,0 +1,64 @@
+\documentclass[11pt]{article}
+\input{../tex-macros/math-alphabets.tex}
+\input{../tex-macros/math-macros.tex}
+\input{../tex-macros/typesetting-macros.tex}
+\usepackage{parskip}
+\usepackage{scalefnt}
+\usepackage{caption,subcaption}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=cyan,
+    filecolor=magenta,      
+    urlcolor=blue
+}
+
+\pagenumbering{gobble}
+
+\numberwithin{figure}{section}
+\renewcommand{\thefigure}{\arabic{section}.\arabic{figure}}
+
+\numberwithin{equation}{section}
+\renewcommand{\theequation}{\arabic{section}.\arabic{equation}}
+
+\newcommand{\bs}[1]{\boldsymbol{#1}}
+\def\bsx{\bs{x}}
+\def\bell{\bs{\ell}}
+\newcommand{\inc}[1]{#1_{\text{inc}}}
+\def\BayesOpt{\texttt{BayesOpt}}
+\def\EI{\texttt{EI}}
+\def\calGP{\mathcal{GP}}
+\usepackage{pifont}
+
+\begin{document}
+
+\section{Context}
+
+This document contains some equations and formulas based on the theoretical claims in the article \href{https://arxiv.org/abs/2402.02229}{\textit{Vanilla Bayesian Optimization Performs Great in High Dimensions}} by Carl Hvarfner, Erik O. Hellsten, and Luigi Nardi.
+
+\noindent\rule{\textwidth}{0.8pt}
+
+\section{Theoretical Setting}
+
+We want to perform Bayesian Optimization (\BayesOpt{}) to find the global maximum of an unknown real-valued function $\fstar(\cdot)$ defined on a compact space $\calX \subset \bbR^{D}$.
+
+To do this, we utilize a Gaussian process surrogate model of the form $\fstar \sim \calGP\left(\mu(\cdot), k_{\bell}(\cdot, \cdot)\right)$, where $k_{\bell}(\cdot, \cdot)$ is a kernel function with respect to some lengthscale $\bell \in \bbR^{D}$.
+
+\section{Assumptions}
+
+We will make the following assumptions about our Gaussian process model:
+
+\begin{itemize}[label=\ding{228}]
+  \item We assume $\calX$ is a \textbf{convex} subset of $\bbR^{D}$.
+  \item For simplicity, we fix $\calX = [0, 1]^{D}$.
+  \item We set the prior $f(x) \sim \calN(\mu_{f}, \sigma_{f}^{2})$ for all $x \in \calX$.
+  \item We query observations $y_{i} = f(x_{i}) + \epsilon_{i}$, with $\epsilon_{i} \simiid \calN(0, \sigma_{\epsilon})^{2}$.
+  \item The kernel $k_{\bell}(\cdot, \cdot)$ is a radial \textbf{bump function} based on some distance metric defined on $\calX$ which scales with $\bell$. 
+  \item The next queried point in each iteration of the \BayesOpt{} algorithm is chosen using expected improvement (\EI{})
+\end{itemize}
+ 
+\section{Notation}
+
+
+
+\end{document}
