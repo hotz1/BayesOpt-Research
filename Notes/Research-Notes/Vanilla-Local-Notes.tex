@@ -24,7 +24,10 @@
 \newcommand{\bs}[1]{\boldsymbol{#1}}
 \def\bsx{\bs{x}}
 \def\bell{\bs{\ell}}
-\newcommand{\inc}[1]{#1_{\text{inc}}}
+% \newcommand{\inc}[1]{#1_{\text{inc}}}
+% \def\xinc{\inc{\bsx}}
+\def\xinc{\bsx_{\text{inc}}}
+\def\xnext{\bsx_{\text{next}}}
 \def\BayesOpt{\texttt{BayesOpt}}
 \def\EI{\texttt{EI}}
 \def\calGP{\mathcal{GP}}
@@ -36,29 +39,62 @@
 
 This document contains some equations and formulas based on the theoretical claims in the article \href{https://arxiv.org/abs/2402.02229}{\textit{Vanilla Bayesian Optimization Performs Great in High Dimensions}} by Carl Hvarfner, Erik O. Hellsten, and Luigi Nardi.
 
+In particular, we look at the proof provided in Appendix C.1 of this article under some slightly altered assumptions.
+
 \noindent\rule{\textwidth}{0.8pt}
 
 \section{Theoretical Setting}
 
 We want to perform Bayesian Optimization (\BayesOpt{}) to find the global maximum of an unknown real-valued function $\fstar(\cdot)$ defined on a compact space $\calX \subset \bbR^{D}$.
 
-To do this, we utilize a Gaussian process surrogate model of the form $\fstar \sim \calGP\left(\mu(\cdot), k_{\bell}(\cdot, \cdot)\right)$, where $k_{\bell}(\cdot, \cdot)$ is a kernel function with respect to some lengthscale $\bell \in \bbR^{D}$.
+To do this, we utilize a Gaussian process surrogate model of the form $\fstar \sim \calGP\left(\mu(\cdot), k_{\bell}(\cdot, \cdot)\right)$, where $k_{\bell}(\cdot, \cdot)$ is a kernel function with respect to the lengthscale hyperparameter $\bell \in \bbR^{D}$.
+
+\section{Notation}
+
+We use $\calD_{t}$ to denote our dataset after $t$ iterations of \BayesOpt{}, with $\calD_{0}$ representing the initial dataset prior to any iterations of the Bayesian optimization algorithm. 
 
 \section{Assumptions}
 
 We will make the following assumptions about our Gaussian process model:
 
 \begin{itemize}[label=\ding{228}]
+
   \item We assume $\calX$ is a \textbf{convex} subset of $\bbR^{D}$.
-  \item For simplicity, we fix $\calX = [0, 1]^{D}$.
-  \item We set the prior $f(x) \sim \calN(\mu_{f}, \sigma_{f}^{2})$ for all $x \in \calX$.
-  \item We query observations $y_{i} = f(x_{i}) + \epsilon_{i}$, with $\epsilon_{i} \simiid \calN(0, \sigma_{\epsilon})^{2}$.
-  \item The kernel $k_{\bell}(\cdot, \cdot)$ is a radial \textbf{bump function} based on some distance metric defined on $\calX$ which scales with $\bell$. 
-  \item The next queried point in each iteration of the \BayesOpt{} algorithm is chosen using expected improvement (\EI{})
+  \begin{itemize}[label=\ding{118}]
+    \item For simplicity, we fix $\calX = [0, 1]^{D}$.
+    \item \textbf{Note:} The original paper also fixes $\calX = [0, 1]^{D}$. 
+  \end{itemize}
+
+  \item We fix the prior $f(\bsx) \sim \calN(\mu_{f}, \sigma_{f}^{2})$ for all $\bsx \in \calX$.
+  \begin{itemize}[label=\ding{118}]
+    \item \textbf{Note:} The original paper also makes this assumption, but with the prior mean referred to as $c$ instead of $\mu_{f}$.
+  \end{itemize}
+
+  \item We assume that the initial dataset $\calD_{0}$ contains one observation, $\left(\bsx_{0}, y_{0}\right)$, where $y_{0} > \mu_{f}$.
+  \begin{itemize}[label=\ding{118}]
+    \item \textbf{Note:} The original paper assumes the incumbent $y_{\text{max}}$ is greater than the prior mean $c$. 
+  \end{itemize}
+
+  \item We query observations $y_{i} = f(\bsx_{i}) + \epsilon_{i}$, with $\epsilon_{i} \simiid \calN(0, \sigma_{\epsilon})^{2}$.
+  \begin{itemize}[label=\ding{118}]
+    \item \textbf{Note:} The original paper also makes this assumption.
+  \end{itemize}
+
+  \item The kernel $k_{\bell}(\cdot, \cdot)$ is a \textbf{bump function} based on a distance metric on $\calX$ which is affected by the lengthscale hyperparameter $\bell$.
+  \begin{itemize}[label=\ding{118}]
+    \item This bump function has some maximal distance $B \in \bbR^{+}$ for which the kernel $k$ is non-zero. 
+    \item For simplicity, we fix $\bell = \begin{pmatrix}1 & \cdots & 1 
+    \end{pmatrix}^{\top}$.
+    \item \textbf{Note:} The original paper makes a stricter assumption, which is that the next queried point is correlated with at most one existing observation.
+  \end{itemize}
+
+  \item The next queried point in each iteration of the \BayesOpt{} algorithm is chosen by maximizing expected improvement (\EI{})
+  \begin{itemize}[label=\ding{118}]
+    \item \textbf{Note:} The original paper also makes this assumption.
+  \end{itemize}
+  
 \end{itemize}
- 
-\section{Notation}
 
-
+\section{Bounding Correlation}
 
 \end{document}
