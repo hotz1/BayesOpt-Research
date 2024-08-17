@@ -115,8 +115,19 @@ We assumed that $\calD_{0} = \left\{(\bsx_{0}, y_{0})\right\}$, and that $y_{0} 
 \var{f(\xast) \mid \calD_{0}} &= k(\xast, \xast) - k(\xast, \bsx_{0})\left(\sigma^{2}_{f} + \sigma^{2}_{\epsilon}\right)^{-1}k(\bsx_{0}, \xast)\\
 &= \sigma^{2}_{f} - k(\xast, \bsx_{0})\left(\sigma^{2}_{f} + \sigma^{2}_{\epsilon}\right)^{-1}k(\bsx_{0}, \xast)\\
 f(\xast) \mid \calD_{0} &\sim \calN\left(\mu_{f} + k(\xast, \bsx_{0})\left(\sigma^{2}_{f} + \sigma^{2}_{\epsilon}\right)^{-1}(y_{0} - \mu_{f}), \sigma^{2}_{f} - k(\xast, \bsx_{0})\left(\sigma^{2}_{f} + \sigma^{2}_{\epsilon}\right)^{-1}k(\bsx_{0}, \xast)\right)
-\intertext{Rewriting the posterior with the correlation $\rhoast = k(\xast, \bsx_{0})/\sigma^{2}_{f}$ yields the following:}
+\intertext{Note that for any $\xast \in \calX$ where $\lVert \xast - \bsx_{0}\rVert \ge B$, we have $k(\xast, \bsx_{0}) = 0$, and thus the posterior distribution is $f(\xast) \mid \calD_{0} \sim \calN(\mu_{f}, \sigma^{2}_{f})$, which is identical to the prior.}
+\intertext{Rewriting the kernel in terms of the correlation $\rhoast = k(\xast, \bsx_{0})/\sigma^{2}_{f}$ yields the following. \textbf{Note:} Remember, $\rhoast$ is not a constant, it is a function of $\xast$. The $\rhoast$ notation is conventional shorthand for the function $\rho(\xast) = k(\xast, \bsx_{0})/\sigma^{2}_{f}$.}
 f(\xast) \mid \calD_{0} &\sim \calN\left(\mu_{f} + \rhoast\frac{\sigma^{2}_{f}}{\sigma^{2}_{f} + \sigma^{2}_{\epsilon}}(y_{0} - \mu_{f}), \sigma^{2}_{f} - \rhoast^{2}\frac{\sigma^{4}_{f}}{\sigma^{2}_{f} + \sigma^{2}_{\epsilon}}\right)
+\intertext{For ease of notation, we define $r_{v}^{2} = \frac{\sigma^{2}_{f}}{\sigma^{2}_{f}+\sigma^{2}_{\epsilon}}$ to be the ratio of variances.}
+% \intertext{When $\sigma^{2}_{\epsilon} = 0$, this simplifies to $f(\xast) \mid \calD_{0} \sim \calN\left(\mu_{f} + \rhoast(y_{0} - \mu_{f}), \sigma^{2}_{f} - \rhoast^{2}\sigma^{2}_{f}\right)$}
+f(\xast) \mid \calD_{0} &\sim \calN\left(\mu_{f}\left(1 - \rhoast r_{v}^{2}\right) + \rhoast r_{v}^{2} y_{0}, \sigma^{2}_{f}\left(1 - \rhoast^{2}r_{v}^{2}\right)\right)
 \end{align*}
-Note that for any $\xast \in \calX$ with $\lVert \xast - \bsx_{0}\rVert \ge B$, we have $k(\xast, \bsx_{0}) = 0$, and thus the posterior distribution is $f(\xast) \mid \calD_{0} \sim \calN(\mu_{f}, \sigma^{2}_{f})$, which is identical to the prior.
+
+This gives us a closed form for the posterior mean and variance of $f(\xast)$ which we can can use to compute the expected improvement from querying $\xast$.
+\begin{align*}
+\EI(\xast) &= \left(\mu(\xast) - y_{0}\right)\Phi\left(\frac{\mu(\xast) - y_{0}}{\sigma(\xast)}\right) + \sigma(\xast)\phi\left(\frac{\mu(\xast) - y_{0}}{\sigma(\xast)}\right)
+\intertext{Plugging in $\mu(\xast)$ and $\sigma(\xast)$:}
+\EI(\xast) &= (y_{0} - \mu_{f})(\rhoast r_{v}^{2} - 1)\Phi\left(\frac{(y_{0} - \mu_{f})(\rhoast r_{v}^{2} - 1)}{\sigma_{f}\sqrt{1 - \rhoast^{2}r_{v}^{2}}}\right) + \sigma_{f}\sqrt{1 - \rhoast^{2}r_{v}^{2}}\phi\left(\frac{(y_{0} - \mu_{f})(\rhoast r_{v}^{2} - 1)}{\sigma_{f}\sqrt{1 - \rhoast^{2}r_{v}^{2}}}\right)
+\intertext{\textbf{Note:} In this setup, $\EI(\xast)$ only depends on $k(\xast, \bsx_{0})$, not on $\xast$ itself.}
+\end{align*}
 \end{document}
