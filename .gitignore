@@ -10,7 +10,7 @@
 *.synctex.gz
 
 # PDF versions of the notes (compile them yourself)
-/Notes/**/*.pdf
+**/*.pdf
 
 # ipynb checkpoints
 **/*.ipynb_checkpoints/    
@@ -26,4 +26,5 @@
 # Image files
 *.png
 
+# Visual Studio Code user settings
 *.vscode**
