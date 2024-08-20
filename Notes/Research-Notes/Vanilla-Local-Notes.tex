@@ -1,0 +1,133 @@
+\documentclass[11pt]{article}
+\input{../tex-macros/math-alphabets.tex}
+\input{../tex-macros/math-macros.tex}
+\input{../tex-macros/typesetting-macros.tex}
+\usepackage{parskip}
+\usepackage{scalefnt}
+\usepackage{caption,subcaption}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=cyan,
+    filecolor=magenta,      
+    urlcolor=blue
+}
+
+\pagenumbering{gobble}
+\numberwithin{figure}{section}
+\renewcommand{\thefigure}{\arabic{section}.\arabic{figure}}
+\numberwithin{equation}{section}
+\renewcommand{\theequation}{\arabic{section}.\arabic{equation}}
+
+\def\BayesOpt{\texttt{BayesOpt}}
+\def\EI{\texttt{EI}}
+\def\calGP{\mathcal{GP}}
+
+\newcommand{\bs}[1]{\boldsymbol{#1}}
+\def\bsx{\bs{x}}
+\def\bell{\bs{\ell}}
+\def\xnext{\bsx_{\textrm{next}}}
+\def\xast{\bsx_{*}}
+\def\rhoast{\bs{\rho}_{*}}
+
+\usepackage{xparse}
+\NewDocumentCommand{\xinc}{o}{%
+  \bsx_{\textrm{inc}\IfValueT{#1}{,{#1}}}
+}
+\NewDocumentCommand{\yinc}{o}{%
+  y_{\textrm{inc}\IfValueT{#1}{,{#1}}}
+}
+
+
+\begin{document}
+
+\section{Context}
+
+This document contains some equations and formulas based on the theoretical claims in the article \href{https://arxiv.org/abs/2402.02229}{\textit{Vanilla Bayesian Optimization Performs Great in High Dimensions}} by Carl Hvarfner, Erik O. Hellsten, and Luigi Nardi.
+
+In particular, we look at the proof provided in Appendix C.1 of this article under some slightly altered assumptions.
+
+\noindent\rule{\textwidth}{0.8pt}
+
+\section{Theoretical Setting}
+
+We want to perform Bayesian Optimization (\BayesOpt) to find the global maximum of an unknown real-valued function $\fstar(\cdot)$ defined on a compact space $\calX \subset \bbR^{D}$.
+
+To do this, we utilize a Gaussian process surrogate model of the form $\fstar \sim \calGP\left(\mu(\cdot), k_{\bell}(\cdot, \cdot)\right)$, where $k_{\bell}(\cdot, \cdot)$ is a kernel function with respect to some lengthscale hyperparameter $\bell \in \bbR^{D}$.
+
+\section{Notation}
+
+We use $\calD_{t}$ to denote our dataset after $t$ iterations of \BayesOpt, with $\calD_{0}$ representing the initial dataset prior to any iterations of the Bayesian optimization algorithm. 
+
+Additionally, we let $\xinc$ and $\yinc$ represent the \textbf{incumbents} (the largest values observed thus far), with $\xinc[t]$ and $\yinc[t]$ representing the incumbents after $t$ iterations of \BayesOpt. 
+
+\section{Assumptions}
+
+We will make the following assumptions about our Gaussian process model:
+
+\begin{itemize}[label=\ding{228}]
+
+  \item We assume $\calX$ is a \textbf{convex} subset of $\bbR^{D}$.
+  \begin{itemize}[label=\ding{118}]
+    \item For simplicity, we fix $\calX = [0, 1]^{D}$.
+    \item \textbf{Note:} The original paper also fixes $\calX = [0, 1]^{D}$. 
+  \end{itemize}
+
+  \item We fix the prior $f(\bsx) \sim \calN(\mu_{f}, \sigma_{f}^{2})$ for all $\bsx \in \calX$.
+  \begin{itemize}[label=\ding{118}]
+    \item \textbf{Note:} The original paper also makes this assumption, but the authors use $c$ to denote the prior mean instead of $\mu_{f}$.
+  \end{itemize}
+
+  \item We assume that the initial dataset $\calD_{0}$ contains one observation, $\left(\bsx_{0}, y_{0}\right)$, where $y_{0} > \mu_{f}$.
+  \begin{itemize}[label=\ding{118}]
+    \item \textbf{Note:} The original paper assumes the incumbent $y_{\text{max}}$ is greater than the prior mean $c$. 
+  \end{itemize}
+
+  \item We query noisy observations $y_{i} = f(\bsx_{i}) + \epsilon_{i}$, with $\epsilon_{i} \simiid \calN(0, \sigma_{\epsilon})^{2}$.
+  \begin{itemize}[label=\ding{118}]
+    \item \textbf{Note:} The original paper also makes this assumption.
+  \end{itemize}
+
+  \item The kernel $k_{\bell}(\cdot, \cdot)$ is a \textbf{bump function} based on a distance metric on $\calX$ which is affected by the lengthscale hyperparameter $\bell$.
+  \begin{itemize}[label=\ding{118}]
+    \item This bump function has some maximal distance $B \in \bbR^{+}$ for which the kernel $k$ is non-zero. We assume that this maximal distance $B$ is `small' relative to the overall search space $\calX$.
+    \item For simplicity, we will fix $\bell = \begin{pmatrix}1 & \cdots & 1 
+    \end{pmatrix}^{\top}$.
+    \item Thus, $k(x, x') = \begin{cases}\exp\left(-\frac{1}{1 - B^{-2}\lVert x - x' \rVert^{2}}\right) & \lVert x - x' \rVert < B\\ 0 & \textrm{otherwise}\end{cases}$
+    \item \textbf{Note:} The original paper makes a much stricter (and less reasonable) assumption, which is that the next queried point is correlated with at most one existing observation.
+  \end{itemize}
+
+  \item The next queried point in each iteration of the \BayesOpt{} algorithm is chosen by maximizing expected improvement (\EI{})
+  \begin{itemize}[label=\ding{118}]
+    \item \textbf{Note:} The original paper also makes this assumption.
+  \end{itemize}
+
+\end{itemize}
+
+\section{Bounding Correlation}
+
+Next, we will analyze the existence of the `Boundary Problem' for Bayesian Optimization as in the original paper, under these loosened assumptions. In this paper, the authors proved a lower bound on the correlation $\bs{\rho} = k(\xnext, \xinc)/\sigma_{f}^{2}$ between the next-queried point $y(\xnext)$ and the incumbent $\xinc$, where $$\xnext := \arg\max_{\xast \in \calX}\EI(\xast)$$
+We assumed that $\calD_{0} = \left\{(\bsx_{0}, y_{0})\right\}$, and that $y_{0} > \mu_{f}$. Thus, $\xinc[0] = \bsx_{0}$ and $\yinc[0] = y_0 > \mu_{f}$ are the incumbents. For any $\xast \in \calX$, computing the posterior yields the following:
+\begin{align*}
+\expec{f(\xast) \mid \calD_{0}} &= \mu(\xast) + k(\xast, \bsx_{0})\left(\sigma^{2}_{f} + \sigma^{2}_{\epsilon}\right)^{-1}(y_{0} - \mu(\xast))\\
+&= \mu_{f} + k(\xast, \bsx_{0})\left(\sigma^{2}_{f} + \sigma^{2}_{\epsilon}\right)^{-1}(y_{0} - \mu_{f})\\
+% \intertext{As $y_0 > \mu_{f}$, we find that $\expec{f(\xast) \mid \calD_{0}} \ge \mu_{f}$, with equality if and only if $k(\xast, \bsx_{0}) = 0$. Note that $k(\xast, \bsx_{0})$ is non-zero if and only if $\lVert \xast - \bsx_{0} \rVert < B$.}
+\var{f(\xast) \mid \calD_{0}} &= k(\xast, \xast) - k(\xast, \bsx_{0})\left(\sigma^{2}_{f} + \sigma^{2}_{\epsilon}\right)^{-1}k(\bsx_{0}, \xast)\\
+&= \sigma^{2}_{f} - k(\xast, \bsx_{0})\left(\sigma^{2}_{f} + \sigma^{2}_{\epsilon}\right)^{-1}k(\bsx_{0}, \xast)\\
+f(\xast) \mid \calD_{0} &\sim \calN\left(\mu_{f} + k(\xast, \bsx_{0})\left(\sigma^{2}_{f} + \sigma^{2}_{\epsilon}\right)^{-1}(y_{0} - \mu_{f}), \sigma^{2}_{f} - k(\xast, \bsx_{0})\left(\sigma^{2}_{f} + \sigma^{2}_{\epsilon}\right)^{-1}k(\bsx_{0}, \xast)\right)
+\intertext{Note that for any $\xast \in \calX$ where $\lVert \xast - \bsx_{0}\rVert \ge B$, we have $k(\xast, \bsx_{0}) = 0$, and thus the posterior distribution is $f(\xast) \mid \calD_{0} \sim \calN(\mu_{f}, \sigma^{2}_{f})$, which is identical to the prior.}
+\intertext{Rewriting the kernel in terms of the correlation $\rhoast = k(\xast, \bsx_{0})/\sigma^{2}_{f}$ yields the following. \textbf{Note:} Remember, $\rhoast$ is not a constant, it is a function of $\xast$. The $\rhoast$ notation is conventional shorthand for the function $\rho(\xast) = k(\xast, \bsx_{0})/\sigma^{2}_{f}$.}
+f(\xast) \mid \calD_{0} &\sim \calN\left(\mu_{f} + \rhoast\frac{\sigma^{2}_{f}}{\sigma^{2}_{f} + \sigma^{2}_{\epsilon}}(y_{0} - \mu_{f}), \sigma^{2}_{f} - \rhoast^{2}\frac{\sigma^{4}_{f}}{\sigma^{2}_{f} + \sigma^{2}_{\epsilon}}\right)
+\intertext{For ease of notation, we define $r_{v}^{2} = \frac{\sigma^{2}_{f}}{\sigma^{2}_{f}+\sigma^{2}_{\epsilon}}$ to be the ratio of variances.}
+% \intertext{When $\sigma^{2}_{\epsilon} = 0$, this simplifies to $f(\xast) \mid \calD_{0} \sim \calN\left(\mu_{f} + \rhoast(y_{0} - \mu_{f}), \sigma^{2}_{f} - \rhoast^{2}\sigma^{2}_{f}\right)$}
+f(\xast) \mid \calD_{0} &\sim \calN\left(\mu_{f}\left(1 - \rhoast r_{v}^{2}\right) + \rhoast r_{v}^{2} y_{0}, \sigma^{2}_{f}\left(1 - \rhoast^{2}r_{v}^{2}\right)\right)
+\end{align*}
+
+This gives us a closed form for the posterior mean and variance of $f(\xast)$ which we can can use to compute the expected improvement from querying $\xast$.
+\begin{align*}
+\EI(\xast) &= \left(\mu(\xast) - y_{0}\right)\Phi\left(\frac{\mu(\xast) - y_{0}}{\sigma(\xast)}\right) + \sigma(\xast)\phi\left(\frac{\mu(\xast) - y_{0}}{\sigma(\xast)}\right)
+\intertext{Plugging in $\mu(\xast)$ and $\sigma(\xast)$:}
+\EI(\xast) &= (y_{0} - \mu_{f})(\rhoast r_{v}^{2} - 1)\Phi\left(\frac{(y_{0} - \mu_{f})(\rhoast r_{v}^{2} - 1)}{\sigma_{f}\sqrt{1 - \rhoast^{2}r_{v}^{2}}}\right) + \sigma_{f}\sqrt{1 - \rhoast^{2}r_{v}^{2}}\phi\left(\frac{(y_{0} - \mu_{f})(\rhoast r_{v}^{2} - 1)}{\sigma_{f}\sqrt{1 - \rhoast^{2}r_{v}^{2}}}\right)
+\intertext{\textbf{Note:} In this setup, $\EI(\xast)$ only depends on $k(\xast, \bsx_{0})$, not on $\xast$ itself.}
+\end{align*}
+\end{document}

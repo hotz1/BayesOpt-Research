@@ -1,0 +1,62 @@
+---
+title: 
+  "Vanilla Bayesian Optimization Performs Great in High Dimensions"
+subtitle:
+  "Authors: Carl Hvarfner, Erik O. Hellsten, Luigi Nardi"
+date: 
+  today
+date-format:
+  "MMMM DD, YYYY"
+format: 
+  beamer:
+    navigation: empty
+pdf-engine: pdflatex
+include-in-header: 
+  text: |
+    \usepackage{graphicx, amssymb, amsmath, amsthm, amsfonts, mathrsfs}
+    \setbeamertemplate{itemize subitem}[ball]
+    \setbeamertemplate{itemize subsubitem}[square]
+    \usefonttheme[onlymath]{serif}
+    \input{../../tex-macros/math-alphabets.tex}
+    \input{../../tex-macros/math-macros.tex}
+    \newcommand{\bs}[1]{\boldsymbol{#1}}
+---
+
+## Problem Setting
+
+- We want to use Bayesian Optimization to find $\arg\max_{\bs{x} \in \calX}f(\bs{x})$, where $\dim(\calX)$ is large.
+  * For this paper, the authors stick to the space $\calX = [0,1]^{D}$.
+- We query a dataset of $n$ observations of the form $y(\bs{x}_{i}) = f(\bs{x}_{i}) + \epsilon_{i}$, with $\epsilon_{i} \simiid \calN(0, \sigma_{\epsilon}^{2})$.
+- The authors quantify the *assumed complexity* of this problem using the *Maximal Information Gain* (MIG) $$\gamma_{n} = \max_{\bfX_{n} \in \calX^{n}}I(y_{\bfX_{n}}, f_{\bfX_{n}}) = \max_{\bfX_{n} \in \calX^{n}}\frac{1}{2}\log\left\vert\bfI + \sigma^{-2}_{\epsilon}k(\bfX_{n}, \bfX_{n})\right\vert$$
+  * The MIG is maximized when samples are fully independent.
+  * The MIG can quantify the 'difficulty' of `BayesOpt` under the assumption that the kernel $k(\cdot, \cdot)$ is accurate.
+  * The difference in MIG with respect to $n$ quantifies additional information gained.
+
+## MIG Visualization
+
+![$\mathcal{GP}$ posteriors for three different lengthscales ($\ell$)](./MIGplot_gp.jpg){height=25%}
+
+![MIG vs. number of samples for each lengthscale](./MIGplot_mig.jpg){height=40%}
+
+## Issues with High-Dimensional `BayesOpt`
+
+- The most prominent issues with Bayesian optimization in high-dimensional spaces is related to the standard 'Curse of Dimensionality'. 
+  * The search space scales exponentially with respect to $D = \dim(\calX)$.
+  * The maximal distance between two points in $[0,1]^{D}$ is $\sqrt{D}$.
+  * Typically, $k(\bs{x}_{1}, \bs{x}_{2})$ is a decreasing function of the distance between $\bs{x}_{1}$ and $\bs{x}_{2}$.
+  * This may lead to very low correlation between observations in the dataset and/or large regions which are entirely unexplored.
+- These issues heavily increase the overall complexity of Bayesian optimization as $D$ increases.
+- Additionally, as $D$ increases, a majority of the data will be far from the centre of the hypercube $\calX$. 
+
+## MIG Visualization
+
+![MIG vs. number of samples for different values of $D = \dim(\calX)$](./IG_vanilla.jpg){height=75%}
+
+## The Boundary Issue
+
+- The 'Boundary Issue' for Bayesian Optimization is a phenomenon in which Bayesian optimization algorithms in high-dimensional spaces tend to query high-variance points on the boundary of the space which maximize a utility function (such as `EI`)
+- The authors of this paper 'show' that this issue does not actually occur in high-dimensional Bayesian optimization.
+  * The authors prove a lower bound on the correlation between $\bs{x}_{*} := \arg\max_{\bs{x} \in \calX}\texttt{EI}(\bs{x})$ and the incumbent $\bs{x}_{\text{inc}}$.
+- This proof is used to justify their proposed algorithm, in which they initialize many candidates near $\bs{x}_{\text{inc}}$
+  * One of the assumptions in this proof is that $\bs{x}_{*}$ is correlated with at most one other observed point.
+  * This assumption is unrealistic, as after several iterations of their algorithm, we will likely have other observed data near the incumbent due to repeated past initializations near the incumbent. 

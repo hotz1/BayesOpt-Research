@@ -13,8 +13,8 @@ include-in-header:
     \setbeamertemplate{itemize subitem}[ball]
     \setbeamertemplate{itemize subsubitem}[square]
     \usefonttheme[onlymath]{serif}
-    \input{../tex-macros/math-alphabets.tex}
-    \input{../tex-macros/math-macros.tex}
+    \input{../../tex-macros/math-alphabets.tex}
+    \input{../../tex-macros/math-macros.tex}
 ---
 
 ## Problem Setting 
