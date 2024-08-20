@@ -1,0 +1,88 @@
+\documentclass[11pt]{article}
+\input{../tex-macros/math-alphabets.tex}
+\input{../tex-macros/math-macros.tex}
+\input{../tex-macros/typesetting-macros.tex}
+\usepackage{parskip}
+\usepackage{scalefnt}
+\usepackage{caption,subcaption}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=cyan,
+    filecolor=magenta,      
+    urlcolor=blue
+}
+
+\pagenumbering{gobble}
+\numberwithin{figure}{section}
+\renewcommand{\thefigure}{\arabic{section}.\arabic{figure}}
+\numberwithin{equation}{section}
+\renewcommand{\theequation}{\arabic{section}.\arabic{equation}}
+
+\def\BayesOpt{\texttt{BayesOpt}}
+\def\EI{\texttt{EI}}
+\def\calGP{\mathcal{GP}}
+
+\newcommand{\bs}[1]{\boldsymbol{#1}}
+\def\bsx{\bs{x}}
+\def\bell{\bs{\ell}}
+\def\xnext{\bsx_{\textrm{next}}}
+\def\xast{\bsx_{*}}
+\def\rhoast{\bs{\rho}_{*}}
+
+\usepackage{xparse}
+\NewDocumentCommand{\xinc}{o}{%
+  \bsx_{\textrm{inc}\IfValueT{#1}{,{#1}}}
+}
+\NewDocumentCommand{\yinc}{o}{%
+  y_{\textrm{inc}\IfValueT{#1}{,{#1}}}
+}
+
+
+\begin{document}
+
+\section{Context}
+
+This document contains mathematical derivations for an altered version of a \BayesOpt{} algorithm in which the dataset only ever has two recorded values, with additional values `thrown out' at each iteration of the algorithm.
+
+Part of the reason for creating this algorithm is to mathematically determine whether the algorithm proposed in \href{https://arxiv.org/abs/2402.02229}{\textit{Vanilla Bayesian Optimization Performs Great in High Dimensions}} is primarily (from a conceptual standpoint) just performing local Bayesian optimization in a high-dimensional space.
+
+\noindent\rule{\textwidth}{0.8pt}
+
+\section{Theoretical Setup}
+
+We want to perform Bayesian Optimization (\BayesOpt) to find the global maximum of an unknown real-valued function $\fstar(\cdot)$ defined on a compact space $\calX \subset \bbR^{D}$. For the sake of simplicity, we will assume that $\calX = [0,1]^{D}$.
+
+To achieve this goal, we use a Gaussian process model $\fstar \sim \calGP\left(\mu_{f}(\cdot), \sigma_{f}^{2}k_{\bell}(\cdot, \cdot)\right)$, where $k_{\bell}(\cdot, \cdot)$ is an RBF (radial basis function) kernel with lengthscale hyperparameter $\bell \in \bbR^{D}$. For now, we fix $\bell = \begin{pmatrix}1 & \cdots & 1\end{pmatrix}^{\top}$.
+
+Unlike traditional \BayesOpt{} algorithms which update the posterior of $\fstar$ after each iteration based on \textbf{all} collected datapoints, we propose a `forgetful' algorithm, in which the dataset only ever contains two observations: the \textit{incumbent} (maximum value observed thus far) and the most-recent non-incumbent.
+
+\section{Assumptions}
+
+In the analysis of this algorithm, we make the following assumptions:
+
+\begin{itemize}[label=\ding{228}]
+
+  \item We can model our unknown function as a Gaussian process of the form $\fstar \sim \calGP\left(\mu_{f}(\cdot), \sigma_{f}^{2}k_{\bell}(\cdot, \cdot)\right)$
+  \begin{itemize}[label=\ding{118}]
+    \item Furthermore, we assume that $\mu_{f}(\bsx) = 0$ for all $\bsx \in \calX$, and that $\sigma_{f} = 1$ by scaling the function as required.
+  \end{itemize}
+
+  \item We assume that $\calX$ is a \textbf{convex} subset of $\bbR^{D}$. 
+  \begin{itemize}[label=\ding{118}]
+    \item Furthermore, we will assume that $\calX$ is the unit hypercube $[0, 1]^{D}$.
+  \end{itemize}
+
+  \item We query \textit{noiseless} observations $y_{i} = \fstar(\bsx_{i})$, i.e. the observation noise parameter $\sigma_{\epsilon}$ is 0. 
+
+  \item $k_{\bell}(\cdot, \cdot)$ is an RBF kernel which is affected by the lengthscale hyperparameter $\bell$.
+  \begin{itemize}[label=\ding{118}]
+    \item For simplicity, we will fix $\bell = \begin{pmatrix}1 & \cdots & 1 \end{pmatrix}^{\top}$.
+  \end{itemize}
+
+  \item The next queried point in each iteration of the algorithm is chosen by maximizing the expected improvement (\EI{}) with respect to the current dataset. 
+
+  \item At each iteration $t$ of the algorithm, $y_{0} \ge y_{1}$. This can be done without loss of generality by relabelling as needed.
+\end{itemize}
+
+\end{document}
