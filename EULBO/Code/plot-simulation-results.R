@@ -7,7 +7,7 @@ n_epochs = as.integer(readLines(con = "stdin", n = 1))
 # n_epochs <- 500
 
 # Get filenames corresponding to desired number of epochs
-all_csvs <- list.files(here("Code/EULBO/Sim-Results/RawData"), 
+all_csvs <- list.files(here("EULBO/Code/Sim-Results/RawData"), 
                        pattern = paste0("_", n_epochs, "E.csv"), full.names = T)
 
 # Read in the data
@@ -55,7 +55,7 @@ epoch_summary %>%
 
 # Save plot locally
 ggsave(filename = paste0("TrueBest_Comparison_", n_epochs, "E.png"),
-       path = here("Code/EULBO/Sim-Results/Plots"), 
+       path = here("EULBO/Code/Sim-Results/Plots"), 
        device = "png", width = 12, height = 8, units = "in")
 
 # Create plot of time taken
@@ -75,5 +75,5 @@ epoch_summary %>%
 
 # Save plot locally
 ggsave(filename = paste0("TimeTaken_Comparison_", n_epochs, "E.png"),
-       path = here("Code/EULBO/Sim-Results/Plots"), 
+       path = here("EULBO/Code/Sim-Results/Plots"), 
        device = "png", width = 12, height = 8, units = "in")
