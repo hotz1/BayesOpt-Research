@@ -58,7 +58,7 @@ ggsave(filename = paste0("TrueBest_Comparison_", n_epochs, "E.png"),
        path = here("Code/EULBO/Sim-Results/Plots"), 
        device = "png", width = 12, height = 8, units = "in")
 
-# Create plot of trueBest
+# Create plot of time taken
 epoch_summary %>%
   filter(Epoch > 0) %>%
   ggplot() +

@@ -1,0 +1,98 @@
+\documentclass[11pt]{article}
+\input{../tex-macros/math-alphabets.tex}
+\input{../tex-macros/math-macros.tex}
+\input{../tex-macros/typesetting-macros.tex}
+\usepackage{parskip}
+\usepackage{scalefnt}
+\usepackage{caption,subcaption}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=cyan,
+    filecolor=magenta,      
+    urlcolor=blue
+}
+
+% \usepackage{titlesec}
+% \titleformat{\section}
+%   {\normalfont\Large\bfseries}
+%   {}
+%   {0pt}
+%   {}
+  
+% \titleformat{\subsection}
+%   {\normalfont\large\bfseries}
+%   {}                        
+%   {0pt}                    
+%   {}
+
+\def\BayesOpt{\texttt{BayesOpt}}
+\def\EI{\texttt{EI}}
+\def\calGP{\mathcal{GP}}
+\def\Matern{\textrm{Mat\'{e}rn}}
+\pagenumbering{gobble}
+
+\begin{document}
+ 
+\section{Linear Algebra}
+\begin{itemize}[label = \ding{228}, itemsep = -3pt, topsep = -10pt, leftmargin = *]
+  \item 
+  \item 
+\end{itemize}
+
+\section{Normal Distributions}
+\begin{itemize}[label = \ding{228}, itemsep = -3pt, topsep = -10pt, leftmargin = *]
+
+  \item 
+  \underline{Univariate Normal}: $X \sim \calN(\mu, \sigma^2)$ has density $f_{X}(x; \mu, \sigma^2) = (2\pi\sigma^{2})^{-1/2}\exp(-\frac{(x-\mu)^2}{2\sigma^2})$
+  \begin{itemize}[label = \ding{118}, itemsep = -2pt, topsep = -10pt]
+    \item $X \sim \calN(\mu, \sigma^2) \implies \expec{X} = \mu$ 
+    \item $X \sim \calN(\mu, \sigma^2) \implies \var{X} = \sigma^2$ 
+    \item
+    Any linear combination of \textbf{independent} Normal random variables is also Normal. Example:\\ $X_{1} \sim \calN(\mu_{1}, \sigma^{2}_{1}), X_{2} \sim \calN(\mu_{2}, \sigma^{2}_{2}) \implies aX_{1} + bX_{2} \sim \calN(a\mu_{1} + b\mu_{2}, a^{2}\sigma_{1}^{2} + b^2\sigma_{2}^{2})$
+  \end{itemize}
+  
+  \item 
+  \underline{Multivariate Normal}: $\bfX \sim \calN(\bfmu, \bfSigma)$, where $\bfmu \in \bbR^{D}$ and $\bfSigma \in \bbR^{D \times D}$ is positive definite has density $f_{X}(\bfx; \bfmu, \bfSigma) = (2\pi)^{-D/2}\det(\bfSigma)^{-1/2}\exp\big(-\frac{1}{2}(\bfx - \bfmu)^{\top}\bfSigma^{-1}(\bfx - \bfmu)\big)$
+  \begin{itemize}[label = \ding{118}, itemsep = -2pt, topsep = -10pt]
+    \item $\bfX \sim \calN(\bfmu, \bfSigma) \implies \expec{\bfX} = \bfmu$ 
+    \item $\bfX \sim \calN(\bfmu, \bfSigma) \implies \var{\bfX} = \bfSigma$ 
+    \item
+    If $\bfX$ follows a multivariate Normal distribution, then any linear transformation of $\bfX$ also follows a multivariate Normal. Example: $\bfX \sim \calN(\bfmu, \bfSigma) \implies A\bfX \sim \calN(A\bfmu, A\bfSigma{A^{\top}})$
+  \end{itemize}
+
+\end{itemize}
+
+\section{Gaussian Process}
+\begin{itemize}[label = \ding{228}, itemsep = -3pt, topsep = -10pt, leftmargin = *]
+  \item A Gaussian Process (GP) is a stochastic process which can represent a probability distribution over a function space, e.g. the space of real-valued continuous functions on $[0, 1]$.
+  \item A GP can be fully characterized by its mean ($\mu(\cdot)$) and a covariance function $k(\cdot, \cdot)$, also known as a kernel function.
+
+  \item The kernel represents the correlation between the values of a function drawn from a GP as a function of the inputs, which may depend on additional hyperparameters. Common GP kernels include the following:
+  \begin{itemize}[label = \ding{118}, itemsep = -2pt, topsep = -10pt]
+    \item Linear: $k_{\ell}(x, x') = \ell{x^{\top}x'}$
+    \item \href{https://en.wikipedia.org/wiki/Mat%C3%A9rn_covariance_function}{\Matern{} kernel} with parameter $\nu$, which can be simplified for $\nu = n + 1/2, n \in \bbN$. A GP with a $\Matern(\nu)$ kernel is mean-square differentiable $\lceil \nu \rceil - 1$ times. 
+    \item Squared Exponential: $k_{\ell}(x, x') = \exp\left(-\frac{\lVert x - x' \rVert^{2}}{2\ell^2}\right)$
+    \item Bump function: $k_{\ell}(x, x') = \begin{cases}\exp\left(-\frac{1}{1 - \ell^{-2}\lVert x - x' \rVert^{2}}\right) & \lVert x - x' \rVert < \ell\\ 0 & \textrm{otherwise}\end{cases}$
+  \end{itemize}
+  
+\end{itemize}
+
+\section{Bayesian Optimization}
+\begin{itemize}[label = \ding{228}, itemsep = -3pt, topsep = -10pt, leftmargin = *]
+  \item Bayesian Optimization (\BayesOpt{}) is a method for finding the global optimum (typically global maximum) of an unknown real-valued function $\fstar(\cdot)$ defined on a compact space $\calX \subset \bbR^{D}$.
+  \item This can be accomplished using a Bayesian approach with a Gaussian Process as a surrogate model over the space of functions from $\calX$ to $\bbR$. 
+  \item We place a GP prior on $\fstar$ of the form $\fstar \sim \calGP(\mu(\cdot), k(\cdot, \cdot))$ and update this based on observed data.
+\end{itemize}
+
+% \section{New Section}
+% \begin{itemize}[label = \ding{228}, itemsep = -3pt, topsep = -10pt, leftmargin = *]
+
+%   \item 
+%   \begin{itemize}[label = \ding{118}, itemsep = -2pt, topsep = -10pt]
+%     \item 
+%   \end{itemize}
+
+% \end{itemize}
+
+\end{document}
