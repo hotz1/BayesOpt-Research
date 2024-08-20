@@ -870,7 +870,7 @@ def ELBO_Fixed(
     sim_df = pd.DataFrame(simulation_dict)
         
     # Check for existing results file
-    result_filename = f"./Code/EULBO/Sim-Results/RawData/ELBO_Fixed{n_actions}_{n_epochs}E.csv"
+    result_filename = f"./EULBO/Code/Sim-Results/RawData/ELBO_Fixed{n_actions}_{n_epochs}E.csv"
 
     # If file exists, change Simulation column accordingly
     if oper.path.isfile(result_filename):
@@ -908,7 +908,7 @@ def ELBO_SQRT(
     sim_df = pd.DataFrame(simulation_dict)
 
     # Check for existing results file
-    result_filename = f"./Code/EULBO/Sim-Results/RawData/ELBO_SQRT_{n_epochs}E.csv"
+    result_filename = f"./EULBO/Code/Sim-Results/RawData/ELBO_SQRT_{n_epochs}E.csv"
 
     # If file exists, change Simulation column accordingly
     if oper.path.isfile(result_filename):
@@ -945,7 +945,7 @@ def ELBO_BayesOpt(
     sim_df = pd.DataFrame(simulation_dict)
 
     # Check for existing results file
-    result_filename = f"./Code/EULBO/Sim-Results/RawData/ELBO_BayesOpt_{n_epochs}E.csv"
+    result_filename = f"./EULBO/Code/Sim-Results/RawData/ELBO_BayesOpt_{n_epochs}E.csv"
 
     # If file exists, change Simulation column accordingly
     if oper.path.isfile(result_filename):
