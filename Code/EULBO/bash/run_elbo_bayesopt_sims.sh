@@ -1,5 +1,6 @@
 #!/bin/sh
-#SBATCH --output="/home/joeyhotz/scratch/BayesOpt-Research/slurm-logs/slurm-%j.out"
+#SBATCH --output="/home/joeyhotz/scratch/BayesOpt-Research/slurm-logs/out/slurm-%j.out"
+#SBATCH --error="/home/joeyhotz/scratch/BayesOpt-Research/slurm-logs/err/slurm-%j.err"
 
 module load cuda
 module load python/3.10

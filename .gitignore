@@ -1,5 +1,6 @@
-# Log files
+# Log and error files
 *.log
+*.err
 
 # Extra files from latexmk 
 *.aux
