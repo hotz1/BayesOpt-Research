@@ -25,6 +25,7 @@
 
 # Image files
 *.png
+*.jpg
 
 # Visual Studio Code user settings
 *.vscode**
