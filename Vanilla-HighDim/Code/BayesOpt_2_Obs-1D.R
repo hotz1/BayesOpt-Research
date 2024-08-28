@@ -127,8 +127,6 @@ GP_posterior <- function(x_test, obs_df){
     theme(plot.title = element_text(hjust = 0.5),
           plot.subtitle = element_text(hjust = 0.5))
   
-  ### TODO: NUMERICALLY FIND ARGMAX EI AND ADD TO PLOT
-  
   return(ggarrange(gp_posterior_plot, gp_EI_plot, ncol = 1))
 }
 
