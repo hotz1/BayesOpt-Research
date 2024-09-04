@@ -51,7 +51,6 @@
 This document contains mathematical derivations for an altered version of a \BayesOpt{} algorithm in which the dataset only ever has two recorded values, with additional values `thrown out' at each iteration of the algorithm.
 
 Part of the reason for creating this algorithm is to mathematically determine whether the algorithm proposed in \href{https://arxiv.org/abs/2402.02229}{\textit{Vanilla Bayesian Optimization Performs Great in High Dimensions}} is primarily (from a conceptual standpoint) just performing local Bayesian optimization in a high-dimensional space.
-
 \noindent\rule{\textwidth}{0.8pt}
 
 \section{Theoretical Setup}
@@ -108,21 +107,34 @@ Let $\calD_{t} = (\mathbf{X}, \mathbf{y})$ be the dataset of two observations at
 \end{align*}
 Unfortunately, even with only 2 observations, it is difficult to get a `nice' closed-form expression for $\var{f(\xast) \mid \mathbf{X}, \mathbf{y}}$, and computing the square root of this value is no better. 
 
-For $\xast \in \calX$, define $\mu_{\textrm{post}}(\xast) = \expec{f(\xast) \mid \mathbf{X}, \mathbf{y}}$, and $\sigma_{\textrm{post}}(\xast) = \sqrt{\var{f(\xast) \mid \mathbf{X}, \mathbf{y}}}$, and define $Z(\xast) = \frac{\mu_{\textrm{post}}(\xast) - \bsy_{0}}{\sigma_{post}(\xast)}$. 
+For $\xast \in \calX$, define $\mu_{\textrm{post}}(\xast) = \expec{f(\xast) \mid \mathbf{X}, \mathbf{y}}$, and $\sigma_{\textrm{post}}(\xast) = \sqrt{\var{f(\xast) \mid \mathbf{X}, \mathbf{y}}}$.
 
 By definition, $\EI(\xast \mid \mathbf{X}, \mathbf{y}) = \expec{\max\left(0, f(\xast) - \bsy_{0}\right) \mid \mathbf{X}, \mathbf{y}}$. We know that this can be simplified to 
+\begin{equation*}
+\EI(\xast \mid \mathbf{X}, \mathbf{y}) = \left(\mu_{\textrm{post}}(\xast) - \bsy_{0}\right)\Phi\left(\frac{\mu_{\textrm{post}}(\xast) - \bsy_{0}}{\sigma_{\textrm{post}}(\xast)}\right) + \sigma_{\textrm{post}}(\xast)\phi\left(\frac{\mu_{\textrm{post}}(\xast) - \bsy_{0}}{\sigma_{\textrm{post}}(\xast)}\right)
+\end{equation*}
+\noindent\rule{\textwidth}{0.8pt}
+
+From above, we have that $\mu_{\textrm{post}}(\xast) = \frac{1}{1 - \bsk_{01}^2}\left[\bsk_{0*}\left(\bsy_{0} - \bsk_{01}\bsy_{1}\right) + \bsk_{1*}\left(\bsy_{1} - \bsk_{01}\bsy_{0}\right)\right]$, and that $\sigma_{\textrm{post}}(\xast) = \sqrt{\frac{1 - \left(\bsk_{01}^{2} + \bsk_{0*}^{2} + \bsk_{1*}^{2}\right) + 2\bsk_{01}\bsk_{0*}\bsk_{1*}}{1 - \bsk_{01}^{2}}}$. Note that both $\mu_{\textrm{post}}$ and $\sigma_{\textrm{post}}$ depend only on $\bsk_{0*}$ and $\bsk_{1*}$, not on the value of $\xast$ itself. For simplicity, we can treat these as functions of $\bsk_{0*}$ and $\bsk_{1*}$, as opposed to treating them as univariate functions of $\xast$. 
+
+Based on this, we can also write \EI{} as a function of $\bsk_{0*}$ and $\bsk_{1*}$, i.e. $$\EI(\bsk_{0*}, \bsk_{1*}) = \left(\mu_{\textrm{post}}(\bsk_{0*}, \bsk_{1*}) - \bsy_{0}\right)\Phi\left(\frac{\mu_{\textrm{post}}(\bsk_{0*}, \bsk_{1*}) - \bsy_{0}}{\sigma_{\textrm{post}}(\bsk_{0*}, \bsk_{1*})}\right) + \sigma_{\textrm{post}}(\bsk_{0*}, \bsk_{1*})\phi\left(\frac{\mu_{\textrm{post}}(\bsk_{0*}, \bsk_{1*}) - \bsy_{0}}{\sigma_{\textrm{post}}(\bsk_{0*}, \bsk_{1*})}\right)$$ and we can maximize \EI{} with respect to the kernels $\bsk_{0*}, \bsk_{1*}$.
+
 \begin{align*}
-\EI(\xast \mid \mathbf{X}, \mathbf{y}) &= \left(\mu_{\textrm{post}}(\xast) - \bsy_{0}\right)\Phi\left(\frac{\mu_{\textrm{post}}(\xast) - \bsy_{0}}{\sigma_{\textrm{post}}(\xast)}\right) + \sigma_{\textrm{post}}(\xast)\phi\left(\frac{\mu_{\textrm{post}}(\xast) - \bsy_{0}}{\sigma_{\textrm{post}}(\xast)}\right)\\
-& = Z(\xast)\sigma(\xast)\Phi(Z(\xast)) + \sigma(\xast)\phi(Z(\xast))
+\frac{\partial \EI}{\partial \bsk_{0*}} &= \left(\frac{\partial \EI}{\partial \mu_{\textrm{post}}}\right)\left(\frac{\partial \mu_{\textrm{post}}}{\partial \bsk_{0*}}\right) + \left(\frac{\partial \EI}{\partial \sigma_{\textrm{post}}}\right)\left(\frac{\partial \sigma_{\textrm{post}}}{\partial \bsk_{0*}}\right) \tag{Multivariate Chain Rule}\\
+&= \left(\frac{\partial \EI}{\partial \mu_{\textrm{post}}}\right)\left(\frac{\bsy_{0} - \bsk_{01}\bsy_{1}}{1 - \bsk_{01}^2}\right) + \left(\frac{\partial \EI}{\partial \sigma_{\textrm{post}}}\right)\left(\frac{\partial \sigma_{\textrm{post}}}{\partial \bsk_{0*}}\right)\\
 \end{align*}
 
-\noindent\rule{\textwidth}{0.8pt}
+
+
+%%% Additional slightly irrelevant notes below %%%
+\newpage 
+
+\section{Using the \Matern(1/2) Kernel}
 
 Since $k_{\bell}$ is a radial kernel, it depends only on the distance between points. Let $\bsd_{01}, \bsd_{0*}, \bsd_{1*}$ respectively represent $d_{\bell}(\bsx_{0}, \bsx_{1}), d_{\bell}(\bsx_{0}, \xast), d_{\bell}(\bsx_{1}, \xast)$. 
 
-Applying the Triangle Inequality yields $\bsd_{0*} \le \bsd_{01} + \bsd_{1*}$. Thus, $\exp(-\bsd_{0*}) \ge \exp\left(-\left(\bsd_{01} + \bsd_{1*}\right)\right) = \exp(-\bsd_{01})\exp(-\bsd_{1*})$. Thus, when the kernel $k_{\bell}$ is a \Matern(1/2) kernel, we have that $\bsk_{0*} \ge \bsk_{01}\bsk_{1*}$. 
-
-\newpage
+Applying the Triangle Inequality yields $\bsd_{0*} \le \bsd_{01} + \bsd_{1*}$. Thus, $\exp(-\bsd_{0*}) \ge \exp\left(-\left(\bsd_{01} + \bsd_{1*}\right)\right) = \exp(-\bsd_{01})\exp(-\bsd_{1*})$. Thus, when the kernel $k_{\bell}$ is a \Matern(1/2) kernel, we have that $\bsk_{0*} \ge \bsk_{01}\bsk_{1*}$.
+\noindent\rule{\textwidth}{0.8pt}
 
 \section{Posterior Variance Revisited}
 Above, we demonstrated that for any given $\xast \in \calX$, $\var{f(\xast) \mid \mathbf{X}, \mathbf{y}} = 1 - \frac{1}{1 - \bsk_{01}^{2}}\left[\bsk_{0*}^{2} - 2\bsk_{01}\bsk_{0*}\bsk_{1*} + \bsk_{1*}^{2}\right]$ when the dataset $\calD_{t} = (\mathbf{X}, \mathbf{y})$ contains exactly 2 observations. This expression is difficult to work with.
@@ -147,11 +159,6 @@ Note that $0 \le \bsk_{01}, \bsk_{0*}, \bsk_{1*} \le 1$ as these are all `scaled
 By the Law of Cosines, $a^2 = \bsk_{0*}^2 + \bsk_{1*}^{2} - 2\bsk_{0*}\bsk_{1*}\cos(A) = \bsk_{0*}^2 + \bsk_{1*}^{2} - 2\bsk_{0*}\bsk_{1*}\bsk_{01}$. Additionally, $\frac{1}{1 - \bsk_{01}^{2}} = \frac{1}{1 - \cos^{2}(A)} = \frac{1}{\sin^{2}(A)}$. Thus, in terms of the triangle above, $\var{f(\xast) \mid \mathbf{X}, \mathbf{y}} = 1 - \frac{a^2}{\sin^2(A)}$.
 
 Recall that $\bsk_{01}$ is fixed with respect to the choice of $\xast$. Since the angle $A$ depends only on $\bsk_{01}$, this angle is fixed with respect to $\xast$. However, the side lengths of this triangle are dependent on $\xast$, as $\bsk_{0*}$ and $\bsk_{1*}$ are functions of $\xast$. 
-
-\noindent\rule{\textwidth}{0.8pt}
-
-Not sure where to go from here... I was hoping to find some way to simplify the value of the posterior variance and posterior standard deviation to try and find the global optimum for \EI.
-
 % \newpage
 % \section{Algorithm Pseudocode}
 % \begin{algorithm}
