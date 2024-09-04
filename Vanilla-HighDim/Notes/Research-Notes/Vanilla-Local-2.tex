@@ -27,10 +27,10 @@
 \def\bsx{\bs{x}}
 \def\bsy{\bs{y}}
 \def\bsk{\bs{k}}
+\def\bsd{\bs{d}}
 \def\bell{\bs{\ell}}
-% \def\xnext{\bsx_{\textrm{next}}}
 \def\xast{\bsx_{*}}
-% \def\rhoast{\bs{\rho}_{*}}
+\def\Matern{\textrm{Mat\'{e}rn}}
 
 % \usepackage{xparse}
 % \NewDocumentCommand{\xinc}{o}{%
@@ -39,6 +39,7 @@
 % \NewDocumentCommand{\yinc}{o}{%
 %   y_{\textrm{inc}\IfValueT{#1}{,{#1}}}
 % }
+
 \usepackage{tikz}
 \usetikzlibrary {angles,quotes}
 
@@ -79,9 +80,9 @@ In the analysis of this algorithm, we make the following assumptions:
 
   \item We query \textit{noiseless} observations $y_{i} = \fstar(\bsx_{i})$, i.e. the observation noise parameter $\sigma_{\epsilon}$ is 0. 
 
-  \item $k_{\bell}(\cdot, \cdot)$ is an RBF kernel which is affected by the lengthscale hyperparameter $\bell$.
+  \item $k_{\bell}(\cdot, \cdot)$ is a radial covariance kernel (stationary kernel which depends only on distance) which is affected by the lengthscale hyperparameter $\bell$.
   \begin{itemize}[label=\ding{118}]
-    \item For simplicity, we will fix $\bell = \begin{pmatrix}1 & \cdots & 1 \end{pmatrix}^{\top}$.
+    \item In particular, we have some distance metric $d_{\bell}(\cdot, \cdot)$ where $k_{\bell}(a, b)$ depends only on $d_{\bell}(a,b)$.
   \end{itemize}
 
   \item The next queried point in each iteration of the algorithm is chosen by maximizing the expected improvement (\EI{}) with respect to the current dataset. 
@@ -102,9 +103,8 @@ Let $\calD_{t} = (\mathbf{X}, \mathbf{y})$ be the dataset of two observations at
 \var{f(\xast) \mid \mathbf{X}, \mathbf{y}} &= \sigma_{f}^{2} - k_{\bell}(\xast, \mathbf{X})k_{\bell}(\mathbf{X}, \mathbf{X})^{-1}k_{\bell}(\mathbf{X}, \xast)\\
 &= 1 - \begin{pmatrix}\bsk_{0*} & \bsk_{1*}\end{pmatrix}\begin{pmatrix}1 & \bsk_{01}\\ \bsk_{01} & 1\end{pmatrix}^{-1}\begin{pmatrix}\bsk_{0*}\\ \bsk_{1*}\end{pmatrix}\\
 &= 1 - \frac{1}{1 - \bsk_{01}^{2}}\begin{pmatrix}\bsk_{0*} & \bsk_{1*}\end{pmatrix}\begin{pmatrix}1 & -\bsk_{01}\\ -\bsk_{01} & 1\end{pmatrix}\begin{pmatrix}\bsk_{0*}\\ \bsk_{1*}\end{pmatrix}\\
-&= 1 - \frac{1}{1 - \bsk_{01}^{2}}\left[\bsk_{0*}^{2} - 2\bsk_{01}\bsk_{0*}\bsk_{1*} + \bsk_{1*}^{2}\right]% \\
-% &= 1 - \frac{1}{1 - \bsk_{01}^{2}}\left[\left(\bsk_{0*}^{2} - 2\bsk_{0*}\bsk_{1*} + \bsk_{1*}^{2}\right)+ 2(1-\bsk_{01})\bsk_{0*}\bsk_{1*}\right]\\
-% &= 1 - \frac{2\bsk_{0*}\bsk_{1*}}{1 + \bsk_{01}} - \frac{(\bsk_{0*} - \bsk_{1*})^2}{1 - \bsk_{01}^{2}}
+&= 1 - \frac{1}{1 - \bsk_{01}^{2}}\left[\bsk_{0*}^{2} - 2\bsk_{01}\bsk_{0*}\bsk_{1*} + \bsk_{1*}^{2}\right]\\
+&= \frac{1}{1 - \bsk_{01}^{2}}\left[1 - \left(\bsk_{01}^{2} + \bsk_{0*}^{2} + \bsk_{1*}^{2}\right) + 2\bsk_{01}\bsk_{0*}\bsk_{1*}\right]\\
 \end{align*}
 Unfortunately, even with only 2 observations, it is difficult to get a `nice' closed-form expression for $\var{f(\xast) \mid \mathbf{X}, \mathbf{y}}$, and computing the square root of this value is no better. 
 
@@ -116,23 +116,11 @@ By definition, $\EI(\xast \mid \mathbf{X}, \mathbf{y}) = \expec{\max\left(0, f(\
 & = Z(\xast)\sigma(\xast)\Phi(Z(\xast)) + \sigma(\xast)\phi(Z(\xast))
 \end{align*}
 
-% \section{Algorithm Pseudocode}
-% \begin{algorithm}
-% \caption{General idea for the proposed `forgetful' \BayesOpt{} algorithm}\label{alg:algo-1}
-% \SetKwComment{Comment}{/* }{ */}
-% \KwData{$\calD_{0} = \left\{\left(\bsx_{0}, y_{0} = \fstar(\bsx_{0})\right), \left(\bsx_{1}, y_{1} = \fstar(\bsx_{1})\right)\right\}$}
-% \KwResult{$\arg\max_{x \in \calX}\fstar(x)$}
-% \While{$N \neq 0$}{
-%   \eIf{$N$ is even}{
-%     $X \gets X \times X$\;
-%     $N \gets \frac{N}{2}$\;
-%   }{\If{$N$ is odd}{
-%     $y \gets y \times X$\;
-%     $N \gets N - 1$\;
-%     }
-%   }
-% }  
-% \end{algorithm}
+\noindent\rule{\textwidth}{0.8pt}
+
+Since $k_{\bell}$ is a radial kernel, it depends only on the distance between points. Let $\bsd_{01}, \bsd_{0*}, \bsd_{1*}$ respectively represent $d_{\bell}(\bsx_{0}, \bsx_{1}), d_{\bell}(\bsx_{0}, \xast), d_{\bell}(\bsx_{1}, \xast)$. 
+
+Applying the Triangle Inequality yields $\bsd_{0*} \le \bsd_{01} + \bsd_{1*}$. Thus, $\exp(-\bsd_{0*}) \ge \exp\left(-\left(\bsd_{01} + \bsd_{1*}\right)\right) = \exp(-\bsd_{01})\exp(-\bsd_{1*})$. Thus, when the kernel $k_{\bell}$ is a \Matern(1/2) kernel, we have that $\bsk_{0*} \ge \bsk_{01}\bsk_{1*}$. 
 
 \newpage
 
@@ -163,4 +151,23 @@ Recall that $\bsk_{01}$ is fixed with respect to the choice of $\xast$. Since th
 \noindent\rule{\textwidth}{0.8pt}
 
 Not sure where to go from here... I was hoping to find some way to simplify the value of the posterior variance and posterior standard deviation to try and find the global optimum for \EI.
+
+% \newpage
+% \section{Algorithm Pseudocode}
+% \begin{algorithm}
+% \caption{General idea for the proposed `forgetful' \BayesOpt{} algorithm}\label{alg:algo-1}
+% \SetKwComment{Comment}{/* }{ */}
+% \KwData{$\calD_{0} = \left\{\left(\bsx_{0}, y_{0} = \fstar(\bsx_{0})\right), \left(\bsx_{1}, y_{1} = \fstar(\bsx_{1})\right)\right\}$}
+% \KwResult{$\arg\max_{x \in \calX}\fstar(x)$}
+% \While{$N \neq 0$}{
+%   \eIf{$N$ is even}{
+%     $X \gets X \times X$\;
+%     $N \gets \frac{N}{2}$\;
+%   }{\If{$N$ is odd}{
+%     $y \gets y \times X$\;
+%     $N \gets N - 1$\;
+%     }
+%   }
+% }  
+% \end{algorithm}
 \end{document}
