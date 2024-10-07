@@ -8,6 +8,9 @@
 *.fls
 *.out
 *.synctex.gz
+*.synctex(busy)
+*.idx
+*.xdv
 
 # PDF versions of the notes (compile them yourself)
 **/*.pdf
