@@ -1,0 +1,168 @@
+\documentclass[11pt]{article}
+\input{../tex-macros/math-alphabets.tex}
+\input{../tex-macros/math-macros.tex}
+\input{../tex-macros/typesetting-macros.tex}
+\usepackage{parskip}
+\usepackage{scalefnt}
+\usepackage{caption,subcaption}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=cyan,
+    filecolor=magenta,      
+    urlcolor=blue
+}
+
+\pagenumbering{gobble}
+% \numberwithin{figure}{section}
+% \renewcommand{\thefigure}{\arabic{section}.\arabic{figure}}
+% \numberwithin{equation}{section}
+% \renewcommand{\theequation}{\arabic{section}.\arabic{equation}}
+
+\usepackage{setspace}
+\setstretch{1.25}
+
+\def\BayesOpt{\texttt{BayesOpt}}
+\def\EI{\texttt{EI}}
+\def\calGP{\mathcal{GP}}
+\newcommand{\bs}[1]{\boldsymbol{#1}}
+\def\bsx{\bs{x}}
+\def\bsy{\bs{y}}
+\def\bsk{\bs{k}}
+\def\bsd{\bs{d}}
+\def\bell{\bs{\ell}}
+\def\xast{\bsx_{*}}
+\def\Matern{\textrm{Mat\'{e}rn}}
+
+\begin{document}
+
+\section{Background}
+
+This document contains mathematical derivations for an altered version of a \BayesOpt{} algorithm for a high-dimensional search space $\calX \subset \bbR^{D}$ in which the dataset of observed values contains at most $D$ observations.
+
+The main motivation driving the research into this algorithm is to mathematically derive whether the algorithm proposed in the paper \href{https://arxiv.org/abs/2402.02229}{\textit{Vanilla Bayesian Optimization Performs Great in High Dimensions}} is primarily a local Bayesian optimization algorithm in the high-dimensional space, as opposed to a truly global algorithm, which the claim made by the authors in the paper. 
+
+In particular, the proof of \textbf{Theorem C.1} in the appendix of the paper makes the assumption that $\bfK = \bfI$ and that the point $\bsx_{*}$ is only strongly correlated with $\bsx_{\textrm{inc}}$, and both of these assumptions seem poorly justified for subsequent iterations of this algorithm, as the proposed algorithm seems to exhibit the behaviour of local Bayesian optimization.
+
+\noindent\rule{\textwidth}{0.8pt}
+\section{Theoretical Setup}
+
+We want to perform Bayesian Optimization (\BayesOpt) to find the global maximum of an unknown real-valued function $\fstar(\cdot)$ defined on a compact space $\calX \subset \bbR^{D}$. For the sake of simplicity, we will assume that $\calX = [0,1]^{D}$.
+
+To achieve this goal, we use a Gaussian process model $\fstar \sim \calGP\left(\mu_{f}(\cdot), \sigma_{f}^{2}k_{\bell}(\cdot, \cdot)\right)$, where $k_{\bell}(\cdot, \cdot)$ is an RBF (radial basis function) kernel with lengthscale hyperparameter $\bell \in \bbR^{D}$. For now, we fix $\bell = \begin{pmatrix}1 & \cdots & 1\end{pmatrix}^{\top}$.
+
+Unlike traditional \BayesOpt{} algorithms which update the posterior of $\fstar$ after each iteration based on \textbf{all} collected datapoints, we propose a `forgetful' algorithm, in which the dataset only ever contains two observations: the \textit{incumbent} (maximum value observed thus far) and the most-recent non-incumbent.
+
+\section{Assumptions}
+
+In the analysis of this algorithm, we make the following assumptions:
+
+\begin{itemize}[label=\ding{228}]
+
+  \item We can model our unknown function as a Gaussian process of the form $\fstar \sim \calGP\left(\mu_{f}(\cdot), \sigma_{f}^{2}k_{\bell}(\cdot, \cdot)\right)$
+  \begin{itemize}[label=\ding{118}]
+    \item Furthermore, we assume that $\mu_{f}(\bsx) = 0$ for all $\bsx \in \calX$, and that $\sigma_{f} = 1$ by scaling the function as required.
+  \end{itemize}
+
+  \item We assume that $\calX$ is a \textbf{convex} subset of $\bbR^{D}$. 
+  \begin{itemize}[label=\ding{118}]
+    \item Furthermore, we will assume that $\calX$ is the unit hypercube $[0, 1]^{D}$.
+  \end{itemize}
+
+  \item We query \textit{noiseless} observations $y_{i} = \fstar(\bsx_{i})$, i.e. the observation noise parameter $\sigma_{\epsilon}$ is 0. 
+
+  \item $k_{\bell}(\cdot, \cdot)$ is a radial covariance kernel (stationary kernel which depends only on distance) which is affected by the lengthscale hyperparameter $\bell$.
+  \begin{itemize}[label=\ding{118}]
+    \item In particular, we have some distance metric $d_{\bell}(\cdot, \cdot)$ where $k_{\bell}(a, b)$ depends only on $d_{\bell}(a,b)$.
+  \end{itemize}
+
+  \item The next queried point in each iteration of the algorithm is chosen by maximizing the expected improvement (\EI{}) with respect to the current dataset. 
+
+  \item At each iteration $t$ of the algorithm, $y_{0} \ge y_{1}$. This can be done without loss of generality by relabelling as needed.
+\end{itemize}
+
+\newpage
+
+\section{Maximizing \EI}
+
+Let $\calD_{t} = (\mathbf{X}, \mathbf{y})$ be the dataset of two observations at time $t$. For ease of notation, we let $\bsk_{01} = k_{\bell}(\bsx_{0}, \bsx_{1})$, $\bsk_{0*} = k_{\bell}(\xast, \bsx_{0})$, and $\bsk_{1*} = k_{\bell}(\xast, \bsx_{1})$. Note that these are all scalar values. Under the assumptions outlined above, for all $\xast \in \calX$, we have the following:
+\begin{align*}
+\expec{f(\xast) \mid \mathbf{X}, \mathbf{y}} &= \mu_{f}(\xast) + k_{\bell}(\xast, \mathbf{X})k_{\bell}(\mathbf{X}, \mathbf{X})^{-1}(\mathbf{y} - \mu_{f}(\mathbf{X}))\\
+&= 0 + \begin{pmatrix}\bsk_{0*} & \bsk_{1*}\end{pmatrix}\begin{pmatrix}1 & \bsk_{01}\\ \bsk_{01} & 1\end{pmatrix}^{-1}\begin{pmatrix}\bsy_0 - 0\\ \bsy_{1} - 0\end{pmatrix}\\
+&= \frac{1}{1 - \bsk_{01}^2}\begin{pmatrix}\bsk_{0*} & \bsk_{1*}\end{pmatrix}\begin{pmatrix}1 & -\bsk_{01}\\ -\bsk_{01} & 1\end{pmatrix}\begin{pmatrix}\bsy_0\\ \bsy_{1}\end{pmatrix}\\
+&= \frac{1}{1 - \bsk_{01}^2}\left[\bsk_{0*}\left(\bsy_{0} - \bsk_{01}\bsy_{1}\right) + \bsk_{1*}\left(\bsy_{1} - \bsk_{01}\bsy_{0}\right)\right]\\
+\var{f(\xast) \mid \mathbf{X}, \mathbf{y}} &= \sigma_{f}^{2} - k_{\bell}(\xast, \mathbf{X})k_{\bell}(\mathbf{X}, \mathbf{X})^{-1}k_{\bell}(\mathbf{X}, \xast)\\
+&= 1 - \begin{pmatrix}\bsk_{0*} & \bsk_{1*}\end{pmatrix}\begin{pmatrix}1 & \bsk_{01}\\ \bsk_{01} & 1\end{pmatrix}^{-1}\begin{pmatrix}\bsk_{0*}\\ \bsk_{1*}\end{pmatrix}\\
+&= 1 - \frac{1}{1 - \bsk_{01}^{2}}\begin{pmatrix}\bsk_{0*} & \bsk_{1*}\end{pmatrix}\begin{pmatrix}1 & -\bsk_{01}\\ -\bsk_{01} & 1\end{pmatrix}\begin{pmatrix}\bsk_{0*}\\ \bsk_{1*}\end{pmatrix}\\
+&= 1 - \frac{1}{1 - \bsk_{01}^{2}}\left[\bsk_{0*}^{2} - 2\bsk_{01}\bsk_{0*}\bsk_{1*} + \bsk_{1*}^{2}\right]\\
+&= \frac{1}{1 - \bsk_{01}^{2}}\left[1 - \left(\bsk_{01}^{2} + \bsk_{0*}^{2} + \bsk_{1*}^{2}\right) + 2\bsk_{01}\bsk_{0*}\bsk_{1*}\right]\\
+\end{align*}
+Unfortunately, even with only 2 observations, it is difficult to get a `nice' closed-form expression for $\var{f(\xast) \mid \mathbf{X}, \mathbf{y}}$, and computing the square root of this value is no better. 
+
+For $\xast \in \calX$, define $\mu_{\textrm{post}}(\xast) = \expec{f(\xast) \mid \mathbf{X}, \mathbf{y}}$, and $\sigma_{\textrm{post}}(\xast) = \sqrt{\var{f(\xast) \mid \mathbf{X}, \mathbf{y}}}$.
+
+By definition, $\EI(\xast \mid \mathbf{X}, \mathbf{y}) = \expec{\max\left(0, f(\xast) - \bsy_{0}\right) \mid \mathbf{X}, \mathbf{y}}$. We know that this can be simplified to 
+\begin{equation*}
+\EI(\xast \mid \mathbf{X}, \mathbf{y}) = \left(\mu_{\textrm{post}}(\xast) - \bsy_{0}\right)\Phi\left(\frac{\mu_{\textrm{post}}(\xast) - \bsy_{0}}{\sigma_{\textrm{post}}(\xast)}\right) + \sigma_{\textrm{post}}(\xast)\phi\left(\frac{\mu_{\textrm{post}}(\xast) - \bsy_{0}}{\sigma_{\textrm{post}}(\xast)}\right)
+\end{equation*}
+\noindent\rule{\textwidth}{0.8pt}
+
+From above, we have that $\mu_{\textrm{post}}(\xast) = \frac{1}{1 - \bsk_{01}^2}\left[\bsk_{0*}\left(\bsy_{0} - \bsk_{01}\bsy_{1}\right) + \bsk_{1*}\left(\bsy_{1} - \bsk_{01}\bsy_{0}\right)\right]$, and that $\sigma_{\textrm{post}}(\xast) = \sqrt{\frac{1 - \left(\bsk_{01}^{2} + \bsk_{0*}^{2} + \bsk_{1*}^{2}\right) + 2\bsk_{01}\bsk_{0*}\bsk_{1*}}{1 - \bsk_{01}^{2}}}$. Note that both $\mu_{\textrm{post}}$ and $\sigma_{\textrm{post}}$ depend only on $\bsk_{0*}$ and $\bsk_{1*}$, not on the value of $\xast$ itself. For simplicity, we can treat these as functions of $\bsk_{0*}$ and $\bsk_{1*}$, as opposed to treating them as univariate functions of $\xast$. 
+
+Based on this, we can also write \EI{} as a function of $\bsk_{0*}$ and $\bsk_{1*}$, i.e. $$\EI(\bsk_{0*}, \bsk_{1*}) = \left(\mu_{\textrm{post}}(\bsk_{0*}, \bsk_{1*}) - \bsy_{0}\right)\Phi\left(\frac{\mu_{\textrm{post}}(\bsk_{0*}, \bsk_{1*}) - \bsy_{0}}{\sigma_{\textrm{post}}(\bsk_{0*}, \bsk_{1*})}\right) + \sigma_{\textrm{post}}(\bsk_{0*}, \bsk_{1*})\phi\left(\frac{\mu_{\textrm{post}}(\bsk_{0*}, \bsk_{1*}) - \bsy_{0}}{\sigma_{\textrm{post}}(\bsk_{0*}, \bsk_{1*})}\right)$$ and we can maximize \EI{} with respect to the kernels $\bsk_{0*}, \bsk_{1*}$.
+
+{\footnotesize
+\begin{align*}
+\frac{\partial \EI}{\partial \bsk_{0*}} &= \left(\frac{\partial \EI}{\partial \mu_{\textrm{post}}}\right)\left(\frac{\partial \mu_{\textrm{post}}}{\partial \bsk_{0*}}\right) + \left(\frac{\partial \EI}{\partial \sigma_{\textrm{post}}}\right)\left(\frac{\partial \sigma_{\textrm{post}}}{\partial \bsk_{0*}}\right) \tag{Multivariate Chain Rule}\\
+&= \left[\Phi\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right) + \left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\phi\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right) + \phi'\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\right]\left(\frac{\bsy_{0} - \bsk_{01}\bsy_{1}}{1 - \bsk_{01}^2}\right) +\\
+&\quad \left[\left(1 - \left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)^{2}\right)\phi\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right) - \left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\phi'\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\right]\left(\frac{\bsk_{01}\bsk_{1*} - \bsk_{0*}}{\left(1 - \bsk_{01}^{2}\right)\sigma_{\textrm{post}}}\right)
+\intertext{Substituting $Z(\bsk_{0*}, \bsk_{1*}) = \frac{\mu_{\textrm{post}}(\bsk_{0*}, \bsk_{1*}) - \bsy_{0}}{\sigma_{\textrm{post}}(\bsk_{0*}, \bsk_{1*})}$ yields the following:}
+\frac{\partial \EI}{\partial \bsk_{0*}} &= \left[\Phi(Z) + Z\phi(Z) + \phi'(Z)\right]\left(\frac{\bsy_{0} - \bsk_{01}\bsy_{1}}{1 - \bsk_{01}^2}\right) + \left[\left(1 - Z^2\right)\phi(Z) - Z\phi'(Z)\right]\left(\frac{\bsk_{01}\bsk_{1*} - \bsk_{0*}}{\left(1 - \bsk_{01}^{2}\right)\sigma_{\textrm{post}}}\right)
+\intertext{Note that $\phi(z) = (2\pi)^{-0.5}\exp(-z^2/2)$. Taking a derivative yields that $\phi'(z) = -z\phi(z)$, or equivalently, $z\phi(z) + \phi'(z) = 0$.}
+\frac{\partial \EI}{\partial \bsk_{0*}} &= \Phi\left(Z\right)\left(\frac{\bsy_{0} - \bsk_{01}\bsy_{1}}{1 - \bsk_{01}^2}\right) + \phi\left(Z\right)\left(\frac{\bsk_{01}\bsk_{1*} - \bsk_{0*}}{\left(1 - \bsk_{01}^{2}\right)\sigma_{\textrm{post}}}\right)\\
+\frac{\partial \EI}{\partial \bsk_{0*}} &\propto \Phi\left(Z\right)\left(\bsy_{0} - \bsk_{01}\bsy_{1}\right) + \phi\left(Z\right)\left(\frac{\bsk_{01}\bsk_{1*} - \bsk_{0*}}{\sigma_{\textrm{post}}}\right)\tag{Since $\bsk_{01}$ is constant}\\
+&= \Phi\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\left(\bsy_{0} - \bsk_{01}\bsy_{1}\right) + \phi\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\left(\frac{\bsk_{01}\bsk_{1*} - \bsk_{0*}}{\sigma_{\textrm{post}}}\right)\tag{Undoing the substitution}\\
+\end{align*}
+}%
+\vfill{}
+{\footnotesize
+\begin{align*}
+\frac{\partial \EI}{\partial \bsk_{1*}} &= \left(\frac{\partial \EI}{\partial \mu_{\textrm{post}}}\right)\left(\frac{\partial \mu_{\textrm{post}}}{\partial \bsk_{1*}}\right) + \left(\frac{\partial \EI}{\partial \sigma_{\textrm{post}}}\right)\left(\frac{\partial \sigma_{\textrm{post}}}{\partial \bsk_{1*}}\right) \tag{Multivariate Chain Rule}\\
+&= \left[\Phi\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right) + \left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\phi\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right) + \phi'\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\right]\left(\frac{\bsy_{1} - \bsk_{01}\bsy_{0}}{1 - \bsk_{01}^2}\right) +\\
+&\quad \left[\left(1 - \left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)^{2}\right)\phi\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right) - \left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\phi'\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\right]\left(\frac{\bsk_{01}\bsk_{0*} - \bsk_{1*}}{\left(1 - \bsk_{01}^{2}\right)\sigma_{\textrm{post}}}\right)
+\intertext{Substituting $Z(\bsk_{0*}, \bsk_{1*}) = \frac{\mu_{\textrm{post}}(\bsk_{0*}, \bsk_{1*}) - \bsy_{0}}{\sigma_{\textrm{post}}(\bsk_{0*}, \bsk_{1*})}$ yields the following:}
+\frac{\partial \EI}{\partial \bsk_{1*}} &= \left[\Phi(Z) + Z\phi(Z) + \phi'(Z)\right]\left(\frac{\bsy_{1} - \bsk_{01}\bsy_{0}}{1 - \bsk_{01}^2}\right) + \left[\left(1 - Z^2\right)\phi(Z) - Z\phi'(Z)\right]\left(\frac{\bsk_{01}\bsk_{0*} - \bsk_{1*}}{\left(1 - \bsk_{01}^{2}\right)\sigma_{\textrm{post}}}\right)
+\intertext{Note that $\phi(z) = (2\pi)^{-0.5}\exp(-z^2/2)$. Taking a derivative yields that $\phi'(z) = -z\phi(z)$, or equivalently, $z\phi(z) + \phi'(z) = 0$.}
+\frac{\partial \EI}{\partial \bsk_{1*}} &= \Phi\left(Z\right)\left(\frac{\bsy_{1} - \bsk_{01}\bsy_{0}}{1 - \bsk_{01}^2}\right) + \phi\left(Z\right)\left(\frac{\bsk_{01}\bsk_{0*} - \bsk_{1*}}{\left(1 - \bsk_{01}^{2}\right)\sigma_{\textrm{post}}}\right)\\
+\frac{\partial \EI}{\partial \bsk_{1*}} &\propto \Phi\left(Z\right)\left(\bsy_{1} - \bsk_{01}\bsy_{0}\right) + \phi\left(Z\right)\left(\frac{\bsk_{01}\bsk_{0*} - \bsk_{1*}}{\sigma_{\textrm{post}}}\right)\tag{Since $\bsk_{01}$ is constant}\\
+&= \Phi\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\left(\bsy_{1} - \bsk_{01}\bsy_{0}\right) + \phi\left(\frac{\mu_{\textrm{post}} - \bsy_{0}}{\sigma_{\textrm{post}}}\right)\left(\frac{\bsk_{01}\bsk_{0*} - \bsk_{1*}}{\sigma_{\textrm{post}}}\right)\tag{Undoing the substitution}\\
+\end{align*}
+}%
+
+\newpage 
+
+\section{Conditions for \EI{} Maximization}
+
+To solve the system of equations $\frac{\partial}{\partial \bsk_{0*}}\EI(\bsk_{0*}, \bsk_{1*}) = \frac{\partial}{\partial \bsk_{1*}}\EI(\bsk_{0*}, \bsk_{1*}) = 0$, we need to solve two equations of the form $a\Phi(z) + b\phi(z) = 0$, or equivalently, $\frac{\phi(z)}{\Phi(z)} = -\frac{a}{b}$.
+
+\textbf{Lemma:} For any $c_0 > 0, c_1 > 0$, there exists $z \in \bbR$ such that $c_{0}\Phi(z) - c_{1}\phi(z) = 0$. 
+
+\textbf{Proof of Lemma:} The equation above is equivalent to 
+
+%%% Additional slightly irrelevant notes below %%%
+\newpage 
+
+\section{Using the \Matern(1/2) Kernel}
+
+Since $k_{\bell}$ is a radial kernel, it depends only on the distance between points. Let $\bsd_{01}, \bsd_{0*}, \bsd_{1*}$ respectively represent $d_{\bell}(\bsx_{0}, \bsx_{1}), d_{\bell}(\bsx_{0}, \xast), d_{\bell}(\bsx_{1}, \xast)$. 
+
+Applying the Triangle Inequality yields $\bsd_{0*} \le \bsd_{01} + \bsd_{1*}$. Thus, $\exp(-\bsd_{0*}) \ge \exp\left(-\left(\bsd_{01} + \bsd_{1*}\right)\right) = \exp(-\bsd_{01})\exp(-\bsd_{1*})$. Thus, when the kernel $k_{\bell}$ is a \Matern(1/2) kernel, we have that $\bsk_{0*} \ge \bsk_{01}\bsk_{1*}$.
+\noindent\rule{\textwidth}{0.8pt}
+
+\newpage
+
+
+$\mathbb{1}$
+
+
+\end{document}
